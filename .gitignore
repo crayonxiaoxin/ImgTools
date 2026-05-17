@@ -4,4 +4,4 @@ dist/
 docs/
 *.local
 .history/
-.vscode/
+.vscode/.DS_Store
