@@ -4,7 +4,7 @@ import { useImageStore } from '@/stores/imageStore'
 
 const store = useImageStore()
 const dragging = ref(false)
-const inputRef = ref<HTMLInputElement>()
+const inputRef = ref<HTMLInputElement | null>(null)
 
 function onDragOver(e: DragEvent) {
   e.preventDefault()
@@ -40,10 +40,14 @@ function selectFiles() {
   <div
     class="drop-zone"
     :class="{ dragging }"
+    role="button"
+    tabindex="0"
     @dragover="onDragOver"
     @dragleave="onDragLeave"
     @drop="onDrop"
     @click="selectFiles"
+    @keydown.enter="selectFiles"
+    @keydown.space.prevent="selectFiles"
   >
     <input
       ref="inputRef"

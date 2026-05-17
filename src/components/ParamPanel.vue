@@ -8,7 +8,7 @@ const writableFormats = computed(() => getWritableFormats())
 
 function updateGlobalConfig(field: string, value: any) {
   store.images.forEach(item => {
-    if (item.status === 'pending' || item.status === 'done' || item.status === 'error') {
+    if (item.status !== 'processing') {
       store.updateConfig(item.id, { [field]: value })
     }
   })

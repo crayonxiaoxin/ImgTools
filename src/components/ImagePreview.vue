@@ -1,13 +1,8 @@
 <script setup lang="ts">
 import { useImageStore } from '@/stores/imageStore'
+import { formatSize } from '@/utils/format'
 
 const store = useImageStore()
-
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
 </script>
 
 <template>

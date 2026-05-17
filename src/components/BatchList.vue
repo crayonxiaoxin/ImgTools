@@ -2,16 +2,11 @@
 import { useImageStore } from '@/stores/imageStore'
 import { useImageProcessor } from '@/composables/useImageProcessor'
 import { useBatchExport } from '@/composables/useBatchExport'
+import { formatSize } from '@/utils/format'
 
 const store = useImageStore()
 const { processAll } = useImageProcessor()
 const { downloadSingle, downloadAllAsZip, downloadAllIndividual } = useBatchExport()
-
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
 
 const statusLabels: Record<string, string> = {
   pending: '等待处理',
