@@ -24,7 +24,7 @@ export interface ImageItem {
   faviconConfig?: FaviconConfig
 }
 
-export type AppMode = 'compress' | 'convert' | 'favicon'
+export type AppMode = 'compress' | 'convert' | 'favicon' | 'pdf'
 
 export interface FaviconResult {
   url: string

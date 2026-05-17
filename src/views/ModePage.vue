@@ -8,6 +8,7 @@ import Sidebar from '@/components/Sidebar.vue'
 import DropZone from '@/components/DropZone.vue'
 import ParamPanel from '@/components/ParamPanel.vue'
 import FaviconPanel from '@/components/FaviconPanel.vue'
+import PdfPanel from '@/components/PdfPanel.vue'
 import BatchList from '@/components/BatchList.vue'
 import StatusBar from '@/components/StatusBar.vue'
 
@@ -43,6 +44,7 @@ watch(() => route.name, (name) => {
       <Sidebar />
       <main class="main-area">
         <FaviconPanel v-if="isFaviconMode" />
+        <PdfPanel v-else-if="store.activeMode === 'pdf'" />
         <template v-else>
           <div class="content-panels">
             <div class="left-panel">

@@ -1,4 +1,4 @@
-export type ImageFormat = 'jpeg' | 'png' | 'webp' | 'avif' | 'gif' | 'bmp' | 'tiff' | 'svg'
+export type ImageFormat = 'jpeg' | 'png' | 'webp' | 'avif' | 'gif' | 'bmp' | 'tiff' | 'svg' | 'pdf'
 
 export interface FormatInfo {
   format: ImageFormat
@@ -20,6 +20,7 @@ export const FORMATS: Record<ImageFormat, FormatInfo> = {
   bmp:  { format: 'bmp',  label: 'BMP',  extensions: ['.bmp'],           mime: 'image/bmp',  readable: true, writable: true, lossyCompress: false, losslessCompress: false },
   tiff: { format: 'tiff', label: 'TIFF', extensions: ['.tif', '.tiff'],  mime: 'image/tiff', readable: true, writable: true, lossyCompress: false, losslessCompress: true },
   svg:  { format: 'svg',  label: 'SVG',  extensions: ['.svg', '.svgz'],  mime: 'image/svg+xml', readable: true, writable: false, lossyCompress: false, losslessCompress: false },
+  pdf:  { format: 'pdf',  label: 'PDF',  extensions: ['.pdf'],           mime: 'application/pdf', readable: true, writable: false, lossyCompress: false, losslessCompress: false },
 }
 
 export function detectFormat(filename: string, mime?: string): ImageFormat | null {

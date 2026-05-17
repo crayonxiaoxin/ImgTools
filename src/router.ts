@@ -5,6 +5,7 @@ const routes = [
   { path: '/compress', name: 'compress', component: () => import('@/views/ModePage.vue') },
   { path: '/convert', name: 'convert', component: () => import('@/views/ModePage.vue') },
   { path: '/favicon', name: 'favicon', component: () => import('@/views/ModePage.vue') },
+  { path: '/pdf', name: 'pdf', component: () => import('@/views/ModePage.vue') },
 ]
 
 const router = createRouter({

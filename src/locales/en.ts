@@ -8,6 +8,7 @@ export default {
     compress: 'Compress',
     convert: 'Convert',
     favicon: 'Favicon',
+    pdf: 'PDF',
   },
   dropzone: {
     prompt: 'Drop images here',

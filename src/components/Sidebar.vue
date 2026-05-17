@@ -44,6 +44,14 @@ function switchMode(mode: AppMode) {
         <span class="mode-icon">⭐</span>
         <span>{{ t('sidebar.favicon') }}</span>
       </div>
+      <div
+        class="mode-item"
+        :class="{ active: store.activeMode === 'pdf' }"
+        @click="switchMode('pdf')"
+      >
+        <span class="mode-icon">📄</span>
+        <span>{{ t('sidebar.pdf') }}</span>
+      </div>
     </div>
   </aside>
 </template>

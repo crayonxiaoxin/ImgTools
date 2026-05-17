@@ -8,6 +8,7 @@ export default {
     compress: '壓縮',
     convert: '轉換',
     favicon: 'Favicon',
+    pdf: 'PDF',
   },
   dropzone: {
     prompt: '將圖片拖曳到此處',
