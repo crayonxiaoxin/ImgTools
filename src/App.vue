@@ -19,16 +19,7 @@ const isFaviconMode = computed(() => store.activeMode === 'favicon')
     <div class="app-body">
       <Sidebar />
       <main class="main-area">
-        <template v-if="isFaviconMode">
-          <div class="content-panels">
-            <div class="left-panel">
-              <DropZone />
-            </div>
-            <div class="right-panel">
-              <FaviconPanel />
-            </div>
-          </div>
-        </template>
+        <FaviconPanel v-if="isFaviconMode" />
         <template v-else>
           <div class="content-panels">
             <div class="left-panel">
