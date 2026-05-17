@@ -20,9 +20,13 @@ export function useBatchExport() {
     const zip = new JSZip()
     for (const item of doneItems) {
       if (!item.resultUrl) continue
-      const response = await fetch(item.resultUrl)
-      const blob = await response.blob()
-      zip.file(exportFileName(item), blob)
+      try {
+        const response = await fetch(item.resultUrl)
+        const blob = await response.blob()
+        zip.file(exportFileName(item), blob)
+      } catch {
+        console.warn(`Failed to fetch result for ${item.name}, skipping`)
+      }
     }
 
     const content = await zip.generateAsync({ type: 'blob' })
@@ -35,11 +39,13 @@ export function useBatchExport() {
   }
 
   async function downloadAllIndividual(): Promise<void> {
-    const doneItems = store.images.filter(i => i.status === 'done' && i.resultUrl)
-    for (const item of doneItems) {
-      if (!item.resultUrl) continue
+    const items = store.images
+      .filter(i => i.status === 'done' && i.resultUrl)
+      .map(i => ({ name: i.name, url: i.resultUrl!, config: { ...i.config } }))
+    for (const item of items) {
+      if (!item.url) continue
       const a = document.createElement('a')
-      a.href = item.resultUrl
+      a.href = item.url
       a.download = exportFileName(item)
       a.click()
       await new Promise(r => setTimeout(r, 200))
@@ -51,5 +57,6 @@ export function useBatchExport() {
 
 function exportFileName(item: { name: string; config: { targetFormat: string } }): string {
   const base = item.name.replace(/\.[^.]+$/, '')
-  return `${base}.${item.config.targetFormat}`
+  const ext = item.config.targetFormat || 'png'
+  return `${base}.${ext}`
 }
