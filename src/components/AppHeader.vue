@@ -27,7 +27,7 @@ function toggleTheme() {
 
 <template>
   <header class="app-header">
-    <img src="/logo.svg" alt="ImgTools" class="logo-icon" />
+    <img src="/logo.svg?v=2" alt="ImgTools" class="logo-icon" />
     <h1 class="logo">ImgTools</h1>
     <p class="tagline">{{ t('app.tagline') }}</p>
     <div class="spacer"></div>
