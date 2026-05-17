@@ -12,18 +12,30 @@ export function onVipsReady(callback: (ready: boolean, error: string | null) => 
   return () => { _listeners = _listeners.filter(l => l !== callback) }
 }
 
-export async function initVips(): Promise<typeof Vips> {
+export async function initVips(timeoutMs = 30000): Promise<typeof Vips> {
   if (_initPromise) return _initPromise
+
   _initPromise = (async () => {
+    console.log('[vips] Starting WASM init...')
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('WASM engine load timeout (30s)')), timeoutMs)
+    })
     try {
-      const mod = await import('wasm-vips')
-      _vips = await mod.default({ workaroundCors: true })
+      console.log('[vips] Importing wasm-vips module...')
+      const mod = await Promise.race([
+        import('wasm-vips'),
+        timeoutPromise,
+      ]) as typeof import('wasm-vips')
+      console.log('[vips] Module loaded, calling default()...')
+      _vips = await mod.default()
+      console.log('[vips] WASM engine ready!')
       _ready = true
       _error = null
       _listeners.forEach(l => l(true, null))
       return _vips
     } catch (e: unknown) {
       _error = e instanceof Error ? e.message : String(e)
+      console.error('[vips] Init failed:', _error)
       _ready = false
       _listeners.forEach(l => l(false, _error))
       throw e
