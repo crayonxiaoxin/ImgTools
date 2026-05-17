@@ -17,8 +17,9 @@
 |---|------|------|
 | 🔒 | **隐私安全** | 基于 wasm-vips 引擎，所有计算在浏览器内执行，图片不会离开你的设备 |
 | 📦 | **图片压缩** | JPEG / PNG / WebP / AVIF / TIFF，有损/无损可调 |
-| ⭐ | **Favicon 制作** | 自由裁剪 → 多尺寸输出，支持 PNG / ICO / ZIP 打包 |
 | 🔄 | **格式转换** | 支持 6 种输出格式，一键互转 |
+| ⭐ | **Favicon 制作** | 自由裁剪 → 多尺寸输出，支持 PNG / ICO / ZIP 打包 |
+| 📄 | **PDF 转图片** | PDF.js 渲染 → 逐页输出或长图拼接，精度可调 |
 | 📋 | **批量处理** | 拖拽多图，统一处理，ZIP 打包下载 |
 | 🌙 | **跨平台** | 暗黑模式 · 多语言 · PWA 离线可用 · 响应式设计 |
 
@@ -53,7 +54,8 @@ npx vite build    # 仅构建（跳过类型检查）
 | **图像引擎** | [wasm-vips](https://github.com/kleisauke/wasm-vips) — libvips 的 WebAssembly 移植 |
 | **前端框架** | Vue 3 + TypeScript + Vite |
 | **状态管理** | Pinia |
-| **PWA** | vite-plugin-pwa，预缓存 ~6MB 资源 |
+| **PDF 引擎** | [PDF.js](https://mozilla.github.io/pdf.js/) — Mozilla 的 PDF 渲染库 |
+| **PWA** | vite-plugin-pwa，预缓存 ~15MB 资源 |
 | **多语言** | vue-i18n · 简体中文 / 繁體中文 / English |
 | **路由** | vue-router（History 模式） |
 
@@ -61,11 +63,13 @@ npx vite build    # 仅构建（跳过类型检查）
 
 ```
 src/
-├── core/         # 核心引擎
-├── composables/  # 逻辑层
-├── stores/       # 状态管理
+├── core/         # 核心引擎（formats/vips/pipeline/pdf）
+├── composables/  # 逻辑层（imageProcessor/batchExport）
+├── stores/       # 状态管理（Pinia）
 ├── components/   # UI 组件
-└── utils/        # 工具函数
+├── views/        # 路由页面
+├── locales/      # 多语言（zh-CN/zh-TW/en）
+└── utils/        # 工具函数（format/ico）
 ```
 
 ## 许可
