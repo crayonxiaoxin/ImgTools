@@ -13,17 +13,20 @@ export function useImageProcessor() {
       const blob = new Blob([result.data], { type: `image/${result.format}` })
       const url = URL.createObjectURL(blob)
       store.setResult(item.id, url, blob.size)
-    } catch (e: any) {
-      store.setError(item.id, e.message ?? 'Processing failed')
+    } catch (e: unknown) {
+      store.setError(item.id, e instanceof Error ? e.message : String(e))
     }
   }
 
   async function processAll(): Promise<void> {
     store.setProcessing(true)
-    for (const item of store.images) {
-      await processSingle(item)
+    try {
+      for (const item of store.images) {
+        await processSingle(item)
+      }
+    } finally {
+      store.setProcessing(false)
     }
-    store.setProcessing(false)
   }
 
   return { processSingle, processAll }
