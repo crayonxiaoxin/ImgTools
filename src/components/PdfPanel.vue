@@ -14,7 +14,7 @@ const pickerRef = ref<HTMLInputElement>()
 const scale = ref(1)
 const format = ref<'png' | 'jpeg' | 'webp'>('png')
 const quality = ref(90)
-const mode = ref<'long' | 'pages'>('long')
+const mode = ref<'long' | 'pages'>('pages')
 const pageFrom = ref(1)
 const pageTo = ref(999)
 
