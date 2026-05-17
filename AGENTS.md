@@ -27,17 +27,21 @@ src/
 ├── stores/
 │   └── imageStore.ts  # Pinia 全局状态
 ├── components/     # UI 组件
-│   ├── AppHeader.vue
-│   ├── Sidebar.vue
-│   ├── DropZone.vue
-│   ├── ParamPanel.vue
-│   ├── BatchList.vue
-│   ├── StatusBar.vue
-│   └── ImagePreview.vue（已从布局中移除，保留文件）
+│   ├── AppHeader.vue  # 头部（Logo + 版本号）
+│   ├── Sidebar.vue    # 侧边栏（桌面）/ 底部导航（移动端）
+│   ├── DropZone.vue   # 拖拽/选择文件区
+│   ├── ParamPanel.vue # 参数面板（压缩/转换配置）
+│   ├── BatchList.vue  # 批处理表格（含缩略图、结果、下载）
+│   └── StatusBar.vue  # 底部状态栏（WASM 加载 + 处理进度）
 ├── utils/
 │   └── format.ts  # 文件大小格式化
-├── App.vue        # 根布局
+├── App.vue        # 根布局（上下结构：参数区 + 表格区）
 └── main.ts        # 入口
+public/
+├── logo.svg          # SVG Logo
+├── favicon.svg       # SVG 网站图标
+├── icon-192x192.png  # PWA 图标
+└── icon-512x512.png  # PWA 图标（maskable）
 ```
 
 ## 关键架构决策
@@ -56,6 +60,13 @@ Cross-Origin-Embedder-Policy: require-corp
 ### 双模式架构
 - **压缩模式**: 质量滑块 + 有损/无损 + 输出格式 + 自动降质（确保文件真正变小）
 - **转换模式**: 格式网格按钮，使用 quality=100 最大质量编码
+
+### 响应式布局
+桌面端三栏（侧边栏 + 主区域 + 参数面板），移动端 (<768px) 侧边栏变为底部导航栏，内容垂直堆叠。
+
+### PWA
+使用 `vite-plugin-pwa` 实现可安装性。SW 预缓存所有静态资源（含 WASM，约 6MB），支持离线使用。
+自动更新策略（`registerType: 'autoUpdate'`）。图标为 192x192 和 512x512 PNG。
 
 ### 编码方式
 使用 `writeToBuffer('.jpg[Q=80,optimize_coding=true]')` 内联格式字符串，而非各格式的独立 save 方法。
