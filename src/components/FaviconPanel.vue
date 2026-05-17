@@ -2,12 +2,11 @@
 import { ref, computed } from 'vue'
 import { useImageStore } from '@/stores/imageStore'
 import { FAVICON_SIZES } from '@/core/formats'
-import { useImageProcessor } from '@/composables/useImageProcessor'
 import { initVips } from '@/core/vips'
+import { createIco } from '@/utils/ico'
 import JSZip from 'jszip'
 
 const store = useImageStore()
-const { processAll } = useImageProcessor()
 
 const selectedSizes = ref<number[]>([16, 32, 48])
 
@@ -22,9 +21,12 @@ const hasImage = computed(() => store.images.length > 0)
 // Crop state (cropping is disabled for now, defaults to center-square crop)
 const croppingEnabled = ref(false)
 
+const icoUrl = ref<string>()
+
 async function generateFavicons() {
   if (!hasImage.value || selectedSizes.value.length === 0) return
   store.setProcessing(true)
+  icoUrl.value = undefined
 
   for (const item of store.images) {
     if (item.status === 'processing') continue
@@ -35,25 +37,42 @@ async function generateFavicons() {
       const img = v.Image.newFromBuffer(new Uint8Array(buffer))
 
       // center-square crop
-      const size = Math.min(img.width, img.height)
-      const left = Math.round((img.width - size) / 2)
-      const top = Math.round((img.height - size) / 2)
-      const cropped = img.crop(left, top, size, size)
+      const dim = Math.min(img.width, img.height)
+      const left = Math.round((img.width - dim) / 2)
+      const top = Math.round((img.height - dim) / 2)
+      const cropped = img.crop(left, top, dim, dim)
 
+      const sizes = selectedSizes.value
       const results: { url: string; size: number }[] = []
-      for (const s of selectedSizes.value) {
-        const scaled = cropped.resize(s / size)
+      const pngData: Uint8Array[] = []
+
+      for (const s of sizes) {
+        const scaled = cropped.resize(s / dim)
         const data = scaled.pngsaveBuffer()
+        pngData.push(data)
         const blob = new Blob([data], { type: 'image/png' })
         const url = URL.createObjectURL(blob)
         results.push({ url, size: s })
       }
       store.setFaviconResults(item.id, results)
+
+      // create ICO
+      const ico = createIco(pngData, sizes)
+      if (icoUrl.value) URL.revokeObjectURL(icoUrl.value)
+      icoUrl.value = URL.createObjectURL(new Blob([ico], { type: 'image/x-icon' }))
     } catch (e: unknown) {
       store.setError(item.id, e instanceof Error ? e.message : String(e))
     }
   }
   store.setProcessing(false)
+}
+
+function downloadIco() {
+  if (!icoUrl.value) return
+  const a = document.createElement('a')
+  a.href = icoUrl.value
+  a.download = 'favicon.ico'
+  a.click()
 }
 
 async function downloadZip() {
@@ -63,12 +82,18 @@ async function downloadZip() {
   const zip = new JSZip()
   for (const item of done) {
     if (!item.faviconResults) continue
+    const base = item.name.replace(/\.[^.]+$/, '')
     for (const r of item.faviconResults) {
-      const name = `${item.name.replace(/\.[^.]+$/, '')}-${r.size}x${r.size}.png`
       const resp = await fetch(r.url)
       const blob = await resp.blob()
-      zip.file(name, blob)
+      zip.file(`${base}-${r.size}x${r.size}.png`, blob)
     }
+  }
+  // add ico to zip if available
+  if (icoUrl.value) {
+    const resp = await fetch(icoUrl.value)
+    const blob = await resp.blob()
+    zip.file('favicon.ico', blob)
   }
   const content = await zip.generateAsync({ type: 'blob' })
   const url = URL.createObjectURL(content)
@@ -105,6 +130,11 @@ async function downloadZip() {
       >
         {{ store.processing ? '生成中...' : '生成图标' }}
       </button>
+      <button
+        class="btn"
+        :disabled="!icoUrl"
+        @click="downloadIco"
+      >下载 .ICO</button>
       <button
         class="btn"
         :disabled="!store.images.some(i => i.faviconResults?.length)"
