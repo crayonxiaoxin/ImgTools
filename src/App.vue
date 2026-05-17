@@ -2,7 +2,6 @@
 import AppHeader from '@/components/AppHeader.vue'
 import Sidebar from '@/components/Sidebar.vue'
 import DropZone from '@/components/DropZone.vue'
-import ImagePreview from '@/components/ImagePreview.vue'
 import ParamPanel from '@/components/ParamPanel.vue'
 import BatchList from '@/components/BatchList.vue'
 import StatusBar from '@/components/StatusBar.vue'
@@ -17,7 +16,6 @@ import StatusBar from '@/components/StatusBar.vue'
         <div class="content-panels">
           <div class="left-panel">
             <DropZone />
-            <ImagePreview />
           </div>
           <div class="right-panel">
             <ParamPanel />

@@ -110,6 +110,19 @@ export const useImageStore = defineStore('images', () => {
 
   function setMode(mode: AppMode) {
     activeMode.value = mode
+    images.value.forEach(item => {
+      if (item.resultUrl) URL.revokeObjectURL(item.resultUrl)
+      item.resultUrl = undefined
+      item.resultSize = undefined
+      item.errorMessage = undefined
+      item.status = 'pending'
+      item.config.quality = 80
+      item.config.lossless = false
+      item.config.maxWidth = undefined
+      if (mode === 'compress') {
+        item.config.targetFormat = item.format ?? 'jpeg'
+      }
+    })
   }
 
   return {

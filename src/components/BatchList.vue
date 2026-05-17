@@ -53,17 +53,20 @@ function hasResults(): boolean {
       <table class="batch-table">
         <thead>
           <tr>
+            <th></th>
             <th>文件名</th>
             <th>原大小</th>
             <th>格式</th>
-            <th>处理后</th>
-            <th>缩小</th>
+            <th>结果</th>
             <th>状态</th>
             <th>操作</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="item in store.images" :key="item.id">
+            <td class="thumb-cell">
+              <img v-if="item.previewUrl" :src="item.previewUrl" :alt="item.name" class="thumb" />
+            </td>
             <td :title="item.name">{{ item.name }}</td>
             <td>{{ formatSize(item.size) }}</td>
             <td>
@@ -72,10 +75,11 @@ function hasResults(): boolean {
                 → {{ item.config.targetFormat.toUpperCase() }}
               </template>
             </td>
-            <td>{{ item.resultSize ? formatSize(item.resultSize) : '-' }}</td>
             <td>
-              <template v-if="item.status === 'done' && item.resultSize">
-                <span v-if="item.resultSize < item.size" class="rate">缩小 {{ ((1 - item.resultSize / item.size) * 100).toFixed(0) }}%</span>
+              <template v-if="item.resultSize">
+                <span v-if="item.resultSize < item.size" class="rate">
+                  → {{ formatSize(item.resultSize) }} (-{{ ((1 - item.resultSize / item.size) * 100).toFixed(0) }}%)
+                </span>
                 <span v-else class="rate-negative">未压缩</span>
               </template>
               <span v-else>-</span>
@@ -134,6 +138,23 @@ function hasResults(): boolean {
   color: #fff;
   border-color: #409eff;
 }
+.btn-primary:disabled {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-primary:disabled::before {
+  content: '';
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255,255,255,0.6);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: btn-spin 0.6s linear infinite;
+}
+@keyframes btn-spin {
+  to { transform: rotate(360deg); }
+}
 .btn-danger {
   color: #f56c6c;
   border-color: #f56c6c;
@@ -162,6 +183,17 @@ function hasResults(): boolean {
   padding: 8px 10px;
   border-top: 1px solid #eee;
 }
+.thumb-cell {
+  width: 48px;
+  padding: 4px !important;
+}
+.thumb {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+  display: block;
+}
 .status-tag {
   display: inline-block;
   padding: 2px 8px;
@@ -169,7 +201,25 @@ function hasResults(): boolean {
   font-size: 12px;
 }
 .status-tag.pending { background: #f0f0f0; color: #999; }
-.status-tag.processing { background: #ecf5ff; color: #409eff; }
+.status-tag.processing {
+  background: #ecf5ff;
+  color: #409eff;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.status-tag.processing::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border: 2px solid #409eff;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: proc-spin 0.6s linear infinite;
+}
+@keyframes proc-spin {
+  to { transform: rotate(360deg); }
+}
 .status-tag.done { background: #f0f9eb; color: #67c23a; }
 .status-tag.error { background: #fef0f0; color: #f56c6c; }
 .rate {
@@ -184,7 +234,7 @@ function hasResults(): boolean {
 @media (max-width: 768px) {
   .batch-table th,
   .batch-table td {
-    padding: 6px;
+    padding: 6px 4px;
     font-size: 12px;
   }
   .batch-header {
@@ -194,6 +244,13 @@ function hasResults(): boolean {
   }
   .batch-actions {
     flex-wrap: wrap;
+  }
+  .thumb-cell {
+    width: 36px;
+  }
+  .thumb {
+    width: 28px;
+    height: 28px;
   }
 }
 </style>
