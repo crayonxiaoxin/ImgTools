@@ -10,7 +10,7 @@ export function useImageProcessor() {
     try {
       const buffer = await item.file.arrayBuffer()
       const result = await processImage(buffer, item.format ?? 'png', item.config)
-      const blob = new Blob([result.data], { type: `image/${result.format}` })
+      const blob = new Blob([result.data as BlobPart], { type: `image/${result.format}` })
       const url = URL.createObjectURL(blob)
       store.setResult(item.id, url, blob.size)
     } catch (e: unknown) {

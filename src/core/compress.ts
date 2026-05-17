@@ -4,6 +4,7 @@ export interface CompressOptions {
   quality: number
   lossless: boolean
   targetFormat: ImageFormat
+  maxWidth?: number
 }
 
 export interface VipsEncodeOptions {
@@ -11,7 +12,7 @@ export interface VipsEncodeOptions {
   options: Record<string, any>
 }
 
-export function buildEncodeOptions(options: CompressOptions, originalFormat: ImageFormat): VipsEncodeOptions {
+export function buildEncodeOptions(options: CompressOptions, _originalFormat: ImageFormat): VipsEncodeOptions {
   const { quality, lossless, targetFormat } = options
   let format: string
   let encodeOptions: Record<string, any> = {}

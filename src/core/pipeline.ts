@@ -1,5 +1,4 @@
 import { initVips } from './vips'
-import type Vips from 'wasm-vips'
 import type { ImageFormat } from './formats'
 import type { CompressOptions } from './compress'
 import { buildEncodeOptions } from './compress'
@@ -28,7 +27,6 @@ export async function processImage(
 
   if (options.maxWidth) {
     const width = img.width
-    const height = img.height
     if (width > options.maxWidth) {
       const scale = options.maxWidth / width
       img = img.resize(scale)
@@ -37,28 +35,26 @@ export async function processImage(
 
   const encode = buildEncodeOptions(options, originalFormat)
 
+  const optionsForSave: Record<string, any> = { ...encode.options }
+  delete optionsForSave.resize
+
+  const extMap: Record<string, string> = {
+    jpeg: '.jpg',
+    png: '.png',
+    webp: '.webp',
+    avif: '.avif',
+    bmp: '.bmp',
+    tiff: '.tiff',
+  }
+
+  const ext = extMap[encode.format]
+  if (!ext) throw new Error(`Unsupported output format: ${encode.format}`)
+
   let result: Uint8Array
-  switch (encode.format) {
-    case 'jpeg':
-      result = img.jpegsaveBuffer({ Q: encode.options.Q })
-      break
-    case 'png':
-      result = img.pngsaveBuffer()
-      break
-    case 'webp':
-      result = img.webpsaveBuffer({ Q: encode.options.Q, lossless: encode.options.lossless ?? false })
-      break
-    case 'avif':
-      result = img.heifsaveBuffer({ Q: encode.options.Q, lossless: encode.options.lossless ?? false, compression: encode.options.lossless ? 'lossless' : 'av1' })
-      break
-    case 'bmp':
-      result = img.bmpsaveBuffer()
-      break
-    case 'tiff':
-      result = img.tiffsaveBuffer({ compression: encode.options.lossless ? 'deflate' : 'lzw' })
-      break
-    default:
-      throw new Error(`Unsupported output format: ${encode.format}`)
+  try {
+    result = img.writeToBuffer(ext, optionsForSave)
+  } catch (e) {
+    throw new Error(`Failed to encode image as ${encode.format}: ${e instanceof Error ? e.message : String(e)}`)
   }
 
   return {

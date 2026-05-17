@@ -17,7 +17,7 @@ export async function initVips(): Promise<typeof Vips> {
   _initPromise = (async () => {
     try {
       const mod = await import('wasm-vips')
-      _vips = await mod.default()
+      _vips = await mod.default({ workaroundCors: true })
       _ready = true
       _error = null
       _listeners.forEach(l => l(true, null))

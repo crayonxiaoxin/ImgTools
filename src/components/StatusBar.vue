@@ -26,7 +26,7 @@ onMounted(() => {
     store.setVipsReady(true)
   }
 
-  onVipsReady((ready, err) => {
+  onVipsReady((_ready, err) => {
     loading.value = false
     if (err) error.value = err
     else store.setVipsReady(true)
