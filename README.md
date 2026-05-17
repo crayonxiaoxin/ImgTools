@@ -5,6 +5,8 @@
 ![wasm-vips](https://img.shields.io/badge/engine-wasm--vips-blue)
 ![Vue 3](https://img.shields.io/badge/Vue-3-4FC08D)
 
+![screenshot](screenshot.png)
+
 ## 功能
 
 - **图片压缩** — JPEG/PNG/WebP/AVIF/TIFF 有损/无损压缩，质量可调
