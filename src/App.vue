@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { useImageStore } from '@/stores/imageStore'
+import type { AppMode } from '@/stores/imageStore'
 import AppHeader from '@/components/AppHeader.vue'
 import Sidebar from '@/components/Sidebar.vue'
 import DropZone from '@/components/DropZone.vue'
@@ -9,8 +11,16 @@ import FaviconPanel from '@/components/FaviconPanel.vue'
 import BatchList from '@/components/BatchList.vue'
 import StatusBar from '@/components/StatusBar.vue'
 
+const route = useRoute()
 const store = useImageStore()
 const isFaviconMode = computed(() => store.activeMode === 'favicon')
+
+// Sync mode from URL hash on mount and change
+watch(() => route.name, (name) => {
+  if (name && typeof name === 'string') {
+    store.setMode(name as AppMode)
+  }
+}, { immediate: true })
 </script>
 
 <template>

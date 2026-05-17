@@ -1,11 +1,16 @@
 <script setup lang="ts">
+import { useRouter, useRoute } from 'vue-router'
 import { useImageStore } from '@/stores/imageStore'
 import type { AppMode } from '@/stores/imageStore'
 
+const router = useRouter()
+const route = useRoute()
 const store = useImageStore()
 
 function switchMode(mode: AppMode) {
-  store.setMode(mode)
+  if (route.name !== mode) {
+    router.push({ name: mode })
+  }
 }
 </script>
 

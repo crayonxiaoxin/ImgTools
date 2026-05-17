@@ -49,68 +49,72 @@ function onDrop(e: DragEvent) {
   }
 }
 
-// ── crop state ──
+// ── crop state (all in natural image pixel coordinates) ──
 const cropContainer = ref<HTMLDivElement>()
-const cropLeft = ref(0)
-const cropTop = ref(0)
-const cropSize = ref(0)
 const containerSize = 280
-const imageScale = ref(1)        // display px per image px
-const imageDisplayW = ref(0)
-const imageDisplayH = ref(0)
+let imgNaturalW = 0
+let imgNaturalH = 0
+const displayScale = ref(1)       // display px per image px
+const displayW = ref(0)            // image display width in container px
+const displayH = ref(0)            // image display height in container px
+const cropImgX = ref(0)            // crop left in image pixels
+const cropImgY = ref(0)            // crop top in image pixels
+const cropImgSize = ref(0)         // crop size in image pixels
+
+// computed display positions
+const cropDisplayLeft = () => displayW.value > 0 ? (containerSize - displayW.value) / 2 + cropImgX.value * displayScale.value : 0
+const cropDisplayTop = () => displayH.value > 0 ? (containerSize - displayH.value) / 2 + cropImgY.value * displayScale.value : 0
+const cropDisplaySize = () => cropImgSize.value * displayScale.value
 
 let isDraggingBox = false
-let dragStartX = 0
-let dragStartY = 0
-let dragOrigLeft = 0
-let dragOrigTop = 0
+let dragStartX = 0, dragStartY = 0
+let dragOrigImgX = 0, dragOrigImgY = 0
 
 let isResizing = false
-let resizeStartX = 0
-let resizeStartY = 0
+let resizeStartX = 0, resizeStartY = 0
 let resizeOrigSize = 0
 
 function initCrop() {
   if (!current.value?.previewUrl) return
   const img = new Image()
   img.onload = () => {
-    const iw = img.naturalWidth
-    const ih = img.naturalHeight
-    const scale = Math.min(containerSize / iw, containerSize / ih)
-    imageScale.value = scale
-    imageDisplayW.value = iw * scale
-    imageDisplayH.value = ih * scale
-    const dim = Math.min(imageDisplayW.value, imageDisplayH.value)
-    cropSize.value = dim
-    cropLeft.value = (imageDisplayW.value - dim) / 2
-    cropTop.value = (imageDisplayH.value - dim) / 2
+    imgNaturalW = img.naturalWidth
+    imgNaturalH = img.naturalHeight
+    const s = Math.min(containerSize / imgNaturalW, containerSize / imgNaturalH)
+    displayScale.value = s
+    displayW.value = imgNaturalW * s
+    displayH.value = imgNaturalH * s
+    const dim = Math.min(imgNaturalW, imgNaturalH)
+    cropImgSize.value = dim
+    cropImgX.value = (imgNaturalW - dim) / 2
+    cropImgY.value = (imgNaturalH - dim) / 2
   }
   img.src = current.value.previewUrl
 }
 
-// drag crop box
 function onBoxDown(e: MouseEvent) {
   isDraggingBox = true
   dragStartX = e.clientX
   dragStartY = e.clientY
-  dragOrigLeft = cropLeft.value
-  dragOrigTop = cropTop.value
+  dragOrigImgX = cropImgX.value
+  dragOrigImgY = cropImgY.value
 }
 
 function onPointerMove(e: MouseEvent) {
+  const s = displayScale.value
   if (isDraggingBox) {
-    let nx = dragOrigLeft + (e.clientX - dragStartX)
-    let ny = dragOrigTop + (e.clientY - dragStartY)
-    const dim = cropSize.value
-    nx = Math.max(0, Math.min(nx, imageDisplayW.value - dim))
-    ny = Math.max(0, Math.min(ny, imageDisplayH.value - dim))
-    cropLeft.value = nx
-    cropTop.value = ny
+    let nx = dragOrigImgX + (e.clientX - dragStartX) / s
+    let ny = dragOrigImgY + (e.clientY - dragStartY) / s
+    const dim = cropImgSize.value
+    nx = Math.max(0, Math.min(nx, imgNaturalW - dim))
+    ny = Math.max(0, Math.min(ny, imgNaturalH - dim))
+    cropImgX.value = nx
+    cropImgY.value = ny
   }
   if (isResizing) {
-    const d = Math.max(20, resizeOrigSize + (e.clientX - resizeStartX))
-    const max = Math.min(imageDisplayW.value - cropLeft.value, imageDisplayH.value - cropTop.value)
-    cropSize.value = Math.min(d, max)
+    const d = Math.max(20, resizeOrigSize + (e.clientX - resizeStartX) / s)
+    const max = Math.min(imgNaturalW - cropImgX.value, imgNaturalH - cropImgY.value)
+    cropImgSize.value = Math.min(d, max)
   }
 }
 
@@ -124,7 +128,7 @@ function onResizeDown(e: MouseEvent) {
   isResizing = true
   resizeStartX = e.clientX
   resizeStartY = e.clientY
-  resizeOrigSize = cropSize.value
+  resizeOrigSize = cropImgSize.value
 }
 
 onMounted(() => {
@@ -150,11 +154,9 @@ async function generate() {
     const buffer = await item.file.arrayBuffer()
     const img = v.Image.newFromBuffer(new Uint8Array(buffer))
 
-    // crop coordinates in image pixels
-    const s = imageScale.value
-    const cx = Math.round(cropLeft.value / s)
-    const cy = Math.round(cropTop.value / s)
-    const cw = Math.round(cropSize.value / s)
+    const cx = Math.round(cropImgX.value)
+    const cy = Math.round(cropImgY.value)
+    const cw = Math.round(cropImgSize.value)
     const cropped = img.crop(cx, cy, cw, cw)
 
     const sizes = selectedSizes.value
@@ -245,30 +247,26 @@ async function downloadZip() {
           <div
             ref="cropContainer"
             class="crop-container"
-            :style="{
-              width: containerSize + 'px',
-              height: containerSize + 'px',
-            }"
+            :style="{ width: containerSize + 'px', height: containerSize + 'px' }"
           >
             <img
               v-if="current.previewUrl"
               :src="current.previewUrl"
               class="crop-image"
               :style="{
-                width: imageDisplayW + 'px',
-                height: imageDisplayH + 'px',
-                left: (containerSize - imageDisplayW) / 2 + 'px',
-                top: (containerSize - imageDisplayH) / 2 + 'px',
+                width: displayW + 'px',
+                height: displayH + 'px',
+                left: (containerSize - displayW) / 2 + 'px',
+                top: (containerSize - displayH) / 2 + 'px',
               }"
             />
-            <!-- dim overlay -->
             <div
               class="crop-box"
               :style="{
-                left: cropLeft + 'px',
-                top: cropTop + 'px',
-                width: cropSize + 'px',
-                height: cropSize + 'px',
+                left: cropDisplayLeft() + 'px',
+                top: cropDisplayTop() + 'px',
+                width: cropDisplaySize() + 'px',
+                height: cropDisplaySize() + 'px',
               }"
               @mousedown="onBoxDown"
             >
