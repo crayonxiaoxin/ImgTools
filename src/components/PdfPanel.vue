@@ -11,7 +11,7 @@ const results = ref<{ data: Uint8Array; pageIndex: number; width: number; height
 const totalPages = ref(0)
 const pickerRef = ref<HTMLInputElement>()
 
-const scale = ref(1.5)
+const scale = ref(1)
 const format = ref<'png' | 'jpeg' | 'webp'>('png')
 const quality = ref(90)
 const mode = ref<'long' | 'pages'>('long')
@@ -159,6 +159,7 @@ function downloadSingle(index: number) {
             <label>渲染精度</label>
             <select v-model="scale" class="sel">
               <option :value="1">1×（普通）</option>
+              <option :value="1.5">1.5×</option>
               <option :value="2">2×（高清）</option>
               <option :value="3">3×（超清）</option>
             </select>
