@@ -11,7 +11,7 @@ const results = ref<{ data: Uint8Array; pageIndex: number; width: number; height
 const totalPages = ref(0)
 const pickerRef = ref<HTMLInputElement>()
 
-const scale = ref(2)
+const scale = ref(1.5)
 const format = ref<'png' | 'jpeg' | 'webp'>('png')
 const quality = ref(90)
 const mode = ref<'long' | 'pages'>('long')

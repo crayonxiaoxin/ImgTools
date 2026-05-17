@@ -79,7 +79,8 @@ async function pageToImage(
 }
 
 /**
- * Generate long image by vertically concatenating all pages.
+ * Generate long image by vertically concatenating pages one at a time
+ * to avoid exhausting WASM memory.
  */
 async function generateLongImage(
   renderedPages: { width: number; height: number; pixels: Uint8ClampedArray }[],
@@ -87,37 +88,41 @@ async function generateLongImage(
   quality: number,
 ): Promise<Uint8Array> {
   const v = await initVips()
-  const images = await Promise.all(
-    renderedPages.map(async (p) => {
-      const img = v.Image.newFromMemory(new Uint8Array(p.pixels), p.width, p.height, 4, 'uchar')
-      return img.flatten ? img.flatten({ background: [255, 255, 255] }) : img
-    }),
-  )
 
-  // Find max width and pad narrower pages
-  const maxW = Math.max(...images.map((img: any) => img.width))
-  const padded = images.map((img: any) => {
-    if (img.width < maxW) {
-      const bg = v.Image.black(maxW, img.height)
-        .cast('uchar')
-        .bandjoin(255)
-      return bg.insert(img, Math.round((maxW - img.width) / 2), 0)
+  // Find max width among all pages
+  let maxW = 0
+  for (const p of renderedPages) {
+    if (p.width > maxW) maxW = p.width
+  }
+
+  // Helper: load one page into vips, flatten, pad to maxW, return image
+  function loadPage(p: { width: number; height: number; pixels: Uint8ClampedArray }) {
+    const img = v.Image.newFromMemory(new Uint8Array(p.pixels), p.width, p.height, 4, 'uchar')
+    const flat = img.flatten ? img.flatten({ background: [255, 255, 255] }) : img
+    if (flat.width < maxW) {
+      const bg = v.Image.black(maxW, flat.height).cast('uchar').bandjoin(255)
+      return bg.insert(flat, Math.round((maxW - flat.width) / 2), 0)
     }
-    return img
-  })
+    return flat
+  }
 
-  const joined = padded.reduce((acc: any, img: any) => {
-    if (!acc) return img
-    return acc.join(img, 'vertical')
-  }, null)
+  // Load first page as base
+  let joined = loadPage(renderedPages[0])
+
+  // Join remaining pages one at a time, deleting intermediates to free memory
+  for (let i = 1; i < renderedPages.length; i++) {
+    const next = loadPage(renderedPages[i])
+    const tmp = joined.join(next, 'vertical')
+    joined = tmp
+  }
 
   switch (format) {
-    case 'png':
-      return joined.pngsaveBuffer()
     case 'jpeg':
       return joined.jpegsaveBuffer({ Q: quality })
     case 'webp':
       return joined.webpsaveBuffer({ Q: quality })
+    default:
+      return joined.pngsaveBuffer()
   }
 }
 
@@ -148,12 +153,12 @@ export async function processPdf(
     }
   }
 
-  const pages = await Promise.all(
-    rendered.map(async (r, i) => {
-      const data = await pageToImage(r.pixels, r.width, r.height, options.format, options.quality)
-      return { data, width: r.width, height: r.height, pageIndex: i + 1 }
-    }),
-  )
+  const pages: PdfPageResult[] = []
+  for (let i = 0; i < rendered.length; i++) {
+    const r = rendered[i]
+    const data = await pageToImage(r.pixels, r.width, r.height, options.format, options.quality)
+    pages.push({ data, width: r.width, height: r.height, pageIndex: i + 1 })
+  }
 
   return { pages, totalPages: rendered.length }
 }
