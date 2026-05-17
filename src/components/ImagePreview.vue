@@ -3,6 +3,11 @@ import { useImageStore } from '@/stores/imageStore'
 import { formatSize } from '@/utils/format'
 
 const store = useImageStore()
+
+function compressSummary(orig: number, result: number): string {
+  const saved = ((1 - result / orig) * 100).toFixed(0)
+  return `缩小了 ${saved}%`
+}
 </script>
 
 <template>
@@ -25,10 +30,15 @@ const store = useImageStore()
           <div class="preview-info">
             <p class="preview-name" :title="item.name">{{ item.name }}</p>
             <p class="preview-size">{{ formatSize(item.size) }}</p>
-            <p v-if="item.format" class="preview-format">{{ item.format.toUpperCase() }}</p>
+            <p v-if="item.format" class="preview-format">
+              {{ item.format.toUpperCase() }}
+              <template v-if="item.status === 'done' && item.config.targetFormat !== item.format">
+                → {{ item.config.targetFormat.toUpperCase() }}
+              </template>
+            </p>
             <p v-if="item.status === 'done' && item.resultSize" :class="item.resultSize <= item.size ? 'preview-result' : 'preview-larger'">
-              处理后: {{ formatSize(item.resultSize) }}
-              ({{ ((1 - item.resultSize / item.size) * 100).toFixed(0) }}%)
+              {{ formatSize(item.size) }} → {{ formatSize(item.resultSize) }}
+              <template v-if="item.resultSize < item.size"> / {{ compressSummary(item.size, item.resultSize) }}</template>
             </p>
             <p v-if="item.status === 'error'" class="preview-error">{{ item.errorMessage }}</p>
             <p v-if="item.status === 'processing'" class="preview-processing">处理中...</p>
@@ -128,5 +138,15 @@ const store = useImageStore()
   text-align: center;
   padding: 40px;
   color: #999;
+}
+
+@media (max-width: 768px) {
+  .preview-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px;
+  }
+  .preview-empty {
+    padding: 24px;
+  }
 }
 </style>

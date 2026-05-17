@@ -66,4 +66,20 @@ body {
   width: 240px;
   flex-shrink: 0;
 }
+
+@media (max-width: 768px) {
+  .app-body {
+    flex-direction: column;
+  }
+  .main-area {
+    padding: 12px;
+    padding-bottom: 60px;
+  }
+  .content-panels {
+    flex-direction: column;
+  }
+  .right-panel {
+    width: 100%;
+  }
+}
 </style>

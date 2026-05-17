@@ -35,4 +35,16 @@ import { version } from '../../package.json'
   color: #bbb;
   margin-left: auto;
 }
+
+@media (max-width: 768px) {
+  .app-header {
+    padding: 10px 12px;
+  }
+  .logo {
+    font-size: 16px;
+  }
+  .tagline {
+    display: none;
+  }
+}
 </style>

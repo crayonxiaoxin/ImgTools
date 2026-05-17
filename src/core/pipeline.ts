@@ -47,29 +47,36 @@ export async function processImage(
   const ext = extMap[encode.format]
   if (!ext) throw new Error(`Unsupported output format: ${encode.format}`)
 
-  // Build format string with inline options, e.g. ".jpg[Q=80]"
-  const optParts: string[] = []
-  for (const [k, v] of Object.entries(encode.options)) {
-    if (k === 'resize') continue
-    if (typeof v === 'boolean') optParts.push(`${k}=${v}`)
-    else optParts.push(`${k}=${v}`)
+  function encodeWithQuality(quality: number): string {
+    const opts: string[] = []
+    for (const [k, v] of Object.entries(encode.options)) {
+      if (k === 'Q') opts.push(`Q=${quality}`)
+      else if (k === 'resize') continue
+      else if (typeof v === 'boolean') opts.push(`${k}=${v}`)
+      else opts.push(`${k}=${v}`)
+    }
+    return opts.length > 0 ? `${ext}[${opts.join(',')}]` : ext
   }
-  const formatString = optParts.length > 0 ? `${ext}[${optParts.join(',')}]` : ext
 
   let result: Uint8Array
+  let currentQ: number | null = 'Q' in encode.options ? encode.options.Q : null
+
   try {
-    result = img.writeToBuffer(formatString)
+    result = img.writeToBuffer(encodeWithQuality(currentQ ?? 80))
   } catch (e) {
     throw new Error(`Failed to encode image as ${encode.format}: ${e instanceof Error ? e.message : String(e)}`)
   }
 
-  // In compress mode (same format), keep original if re-encode made it larger
-  if (encode.format === originalFormat && result.length > buffer.byteLength) {
-    return {
-      data: new Uint8Array(buffer),
-      format: originalFormat,
-      width: img.width,
-      height: img.height,
+  // For same-format compression, auto-reduce quality until file is actually smaller
+  if (currentQ !== null && encode.format === originalFormat && result.length > buffer.byteLength) {
+    let q = currentQ - 10
+    while (q >= 10 && result.length > buffer.byteLength) {
+      try {
+        result = img.writeToBuffer(encodeWithQuality(q))
+      } catch {
+        break
+      }
+      q -= 10
     }
   }
 

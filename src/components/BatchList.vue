@@ -57,7 +57,7 @@ function hasResults(): boolean {
             <th>原大小</th>
             <th>格式</th>
             <th>处理后</th>
-            <th>压缩率</th>
+            <th>缩小</th>
             <th>状态</th>
             <th>操作</th>
           </tr>
@@ -66,12 +66,18 @@ function hasResults(): boolean {
           <tr v-for="item in store.images" :key="item.id">
             <td :title="item.name">{{ item.name }}</td>
             <td>{{ formatSize(item.size) }}</td>
-            <td>{{ item.format?.toUpperCase() ?? '-' }}</td>
+            <td>
+              {{ item.format?.toUpperCase() ?? '-' }}
+              <template v-if="item.status === 'done' && item.config.targetFormat !== item.format">
+                → {{ item.config.targetFormat.toUpperCase() }}
+              </template>
+            </td>
             <td>{{ item.resultSize ? formatSize(item.resultSize) : '-' }}</td>
             <td>
-              <span v-if="item.status === 'done' && item.resultSize" :class="item.resultSize <= item.size ? 'rate' : 'rate-negative'">
-                {{ ((1 - item.resultSize / item.size) * 100).toFixed(1) }}%
-              </span>
+              <template v-if="item.status === 'done' && item.resultSize">
+                <span v-if="item.resultSize < item.size" class="rate">缩小 {{ ((1 - item.resultSize / item.size) * 100).toFixed(0) }}%</span>
+                <span v-else class="rate-negative">未压缩</span>
+              </template>
               <span v-else>-</span>
             </td>
             <td>
@@ -173,5 +179,21 @@ function hasResults(): boolean {
 .rate-negative {
   color: #e6a23c;
   font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .batch-table th,
+  .batch-table td {
+    padding: 6px;
+    font-size: 12px;
+  }
+  .batch-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .batch-actions {
+    flex-wrap: wrap;
+  }
 }
 </style>

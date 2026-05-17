@@ -96,4 +96,17 @@ function selectFiles() {
   font-size: 12px !important;
   color: #999 !important;
 }
+
+@media (max-width: 768px) {
+  .drop-zone {
+    padding: 24px 16px;
+  }
+  .drop-zone-content svg {
+    width: 32px;
+    height: 32px;
+  }
+  .drop-zone-content p {
+    font-size: 13px;
+  }
+}
 </style>

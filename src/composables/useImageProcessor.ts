@@ -9,7 +9,11 @@ export function useImageProcessor() {
     item.status = 'processing'
     try {
       const buffer = await item.file.arrayBuffer()
-      const result = await processImage(buffer, item.format ?? 'png', item.config)
+      // In convert mode, use max quality — don't apply compression
+      const config = store.activeMode === 'convert'
+        ? { ...item.config, quality: 100 }
+        : item.config
+      const result = await processImage(buffer, item.format ?? 'png', config)
       const blob = new Blob([result.data as BlobPart], { type: `image/${result.format}` })
       const url = URL.createObjectURL(blob)
       store.setResult(item.id, url, blob.size)

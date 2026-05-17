@@ -69,4 +69,34 @@ function switchMode(mode: AppMode) {
 .mode-icon {
   font-size: 16px;
 }
+
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    border-right: none;
+    border-top: 1px solid #eee;
+    padding: 0;
+    z-index: 100;
+  }
+  .section-title {
+    display: none;
+  }
+  .mode-section {
+    display: flex;
+  }
+  .mode-item {
+    flex: 1;
+    justify-content: center;
+    padding: 10px 8px;
+    font-size: 12px;
+  }
+  .mode-item.active {
+    border-top: 2px solid #409eff;
+    background: #f5faff;
+  }
+}
 </style>

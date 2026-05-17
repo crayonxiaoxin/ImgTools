@@ -265,4 +265,10 @@ function setMaxWidth(val: number) {
   font-size: 12px;
   color: #999;
 }
+
+@media (max-width: 768px) {
+  .param-panel {
+    padding: 12px;
+  }
+}
 </style>
