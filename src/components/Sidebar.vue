@@ -40,7 +40,7 @@ function switchMode(mode: AppMode) {
         @click="switchMode('favicon')"
       >
         <span class="mode-icon">⭐</span>
-        <span>图标</span>
+        <span>Favicon</span>
       </div>
     </div>
   </aside>
