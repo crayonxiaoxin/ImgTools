@@ -5,7 +5,7 @@ let pdfjs: any = null
 async function getPdfJs() {
   if (!pdfjs) {
     pdfjs = await import('pdfjs-dist')
-    pdfjs.GlobalWorkerOptions.workerSrc = ''
+    pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
   }
   return pdfjs
 }
