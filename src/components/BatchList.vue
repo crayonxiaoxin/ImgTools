@@ -132,8 +132,11 @@ function hasResults(): boolean {
   cursor: pointer;
 }
 .btn:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
+  background: var(--bg-dim);
+  color: var(--text-muted);
+  border-color: var(--border);
 }
 .btn-primary {
   background: var(--primary);

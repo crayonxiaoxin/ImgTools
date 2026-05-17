@@ -251,6 +251,7 @@ function setMaxWidth(val: number) {
   border-radius: 4px;
   font-size: 13px;
   background: var(--bg-surface);
+  color: var(--text);
 }
 .max-width-row {
   display: flex;

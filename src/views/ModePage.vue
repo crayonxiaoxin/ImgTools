@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useImageStore } from '@/stores/imageStore'
 import type { AppMode } from '@/stores/imageStore'
@@ -11,29 +11,23 @@ import FaviconPanel from '@/components/FaviconPanel.vue'
 import BatchList from '@/components/BatchList.vue'
 import StatusBar from '@/components/StatusBar.vue'
 
+// Initialize theme BEFORE child components mount
+const savedTheme = localStorage.getItem('imgtools-theme')
+if (savedTheme === 'dark' || savedTheme === 'light') {
+  document.documentElement.classList.toggle('dark', savedTheme === 'dark')
+} else {
+  document.documentElement.classList.toggle('dark', window.matchMedia('(prefers-color-scheme: dark)').matches)
+}
+// Listen for system changes
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+  if (!localStorage.getItem('imgtools-theme')) {
+    document.documentElement.classList.toggle('dark', e.matches)
+  }
+})
+
 const route = useRoute()
 const store = useImageStore()
 const isFaviconMode = computed(() => store.activeMode === 'favicon')
-
-const prefersDark = ref(false)
-
-onMounted(() => {
-  const saved = localStorage.getItem('imgtools-theme')
-  if (saved === 'dark' || saved === 'light') {
-    document.documentElement.classList.toggle('dark', saved === 'dark')
-    prefersDark.value = saved === 'dark'
-  } else {
-    const mq = window.matchMedia('(prefers-color-scheme: dark)')
-    prefersDark.value = mq.matches
-    document.documentElement.classList.toggle('dark', mq.matches)
-    mq.addEventListener('change', (e) => {
-      if (!localStorage.getItem('imgtools-theme')) {
-        prefersDark.value = e.matches
-        document.documentElement.classList.toggle('dark', e.matches)
-      }
-    })
-  }
-})
 
 watch(() => route.name, (name) => {
   if (name && typeof name === 'string') {
