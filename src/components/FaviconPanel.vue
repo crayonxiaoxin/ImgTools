@@ -5,7 +5,6 @@ import { useImageStore } from '@/stores/imageStore'
 import { FAVICON_SIZES } from '@/core/formats'
 import { initVips } from '@/core/vips'
 import { createIco } from '@/utils/ico'
-import { formatSize } from '@/utils/format'
 import JSZip from 'jszip'
 
 const { t } = useI18n()
@@ -74,7 +73,7 @@ let dragStartX = 0, dragStartY = 0
 let dragOrigImgX = 0, dragOrigImgY = 0
 
 let isResizing = false
-let resizeStartX = 0, resizeStartY = 0
+let resizeStartX = 0
 let resizeOrigSize = 0
 
 function initCrop() {
@@ -130,7 +129,6 @@ function onResizeDown(e: MouseEvent) {
   e.stopPropagation()
   isResizing = true
   resizeStartX = e.clientX
-  resizeStartY = e.clientY
   resizeOrigSize = cropImgSize.value
 }
 
@@ -170,14 +168,15 @@ async function generate() {
       const scaled = cropped.resize(sz / cw)
       const data = scaled.pngsaveBuffer()
       pngData.push(data)
-      const blob = new Blob([data], { type: 'image/png' })
-      results.push({ url: URL.createObjectURL(blob), size: sz })
+      const blob = new Blob([data as BlobPart], { type: 'image/png' })
+      const url = URL.createObjectURL(blob)
+      results.push({ url, size: sz })
     }
     store.setFaviconResults(item.id, results)
 
     const ico = createIco(pngData, sizes)
     if (icoUrl.value) URL.revokeObjectURL(icoUrl.value)
-    icoUrl.value = URL.createObjectURL(new Blob([ico], { type: 'image/x-icon' }))
+    icoUrl.value = URL.createObjectURL(new Blob([ico as BlobPart], { type: 'image/x-icon' }))
   } catch (e: unknown) {
     store.setError(item.id, e instanceof Error ? e.message : String(e))
   }
