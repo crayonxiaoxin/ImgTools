@@ -1,4 +1,7 @@
 node_modules/
 dist/
 .superpowers/
+docs/
 *.local
+.history/
+.vscode/
