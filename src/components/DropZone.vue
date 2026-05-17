@@ -73,30 +73,30 @@ function selectFiles() {
 
 <style scoped>
 .drop-zone {
-  border: 2px dashed #ccc;
+  border: 2px dashed var(--drop-border);
   border-radius: 12px;
   padding: 40px;
   text-align: center;
   cursor: pointer;
   transition: all 0.2s;
-  background: #fafafa;
+  background: var(--bg-faint);
 }
 .drop-zone:hover, .drop-zone.dragging {
-  border-color: #409eff;
-  background: #ecf5ff;
+  border-color: var(--primary);
+  background: var(--primary-bg);
 }
 .drop-zone-content svg {
-  color: #999;
+  color: var(--text-muted);
   margin-bottom: 8px;
 }
 .drop-zone-content p {
   margin: 4px 0;
   font-size: 14px;
-  color: #333;
+  color: var(--text);
 }
 .hint {
   font-size: 12px !important;
-  color: #999 !important;
+  color: var(--text-muted) !important;
 }
 
 @media (max-width: 768px) {

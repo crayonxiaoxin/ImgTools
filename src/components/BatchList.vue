@@ -125,9 +125,9 @@ function hasResults(): boolean {
 }
 .btn {
   padding: 6px 14px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-strong);
   border-radius: 6px;
-  background: #fff;
+  background: var(--bg-surface);
   font-size: 13px;
   cursor: pointer;
 }
@@ -136,9 +136,9 @@ function hasResults(): boolean {
   cursor: not-allowed;
 }
 .btn-primary {
-  background: #409eff;
-  color: #fff;
-  border-color: #409eff;
+  background: var(--primary);
+  color: var(--bg-surface);
+  border-color: var(--primary);
 }
 .btn-primary:disabled {
   display: inline-flex;
@@ -150,7 +150,7 @@ function hasResults(): boolean {
   width: 12px;
   height: 12px;
   border: 2px solid rgba(255,255,255,0.6);
-  border-top-color: #fff;
+  border-top-color: var(--bg-surface);
   border-radius: 50%;
   animation: btn-spin 0.6s linear infinite;
 }
@@ -158,8 +158,8 @@ function hasResults(): boolean {
   to { transform: rotate(360deg); }
 }
 .btn-danger {
-  color: #f56c6c;
-  border-color: #f56c6c;
+  color: var(--danger);
+  border-color: var(--danger);
 }
 .btn-sm {
   padding: 2px 8px;
@@ -174,16 +174,16 @@ function hasResults(): boolean {
   font-size: 13px;
 }
 .batch-table th {
-  background: #f5f5f5;
+  background: var(--bg-hover);
   padding: 8px 10px;
   text-align: left;
   font-weight: 500;
-  color: #666;
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 .batch-table td {
   padding: 8px 10px;
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--border);
 }
 .thumb-cell {
   width: 48px;
@@ -202,10 +202,10 @@ function hasResults(): boolean {
   border-radius: 10px;
   font-size: 12px;
 }
-.status-tag.pending { background: #f0f0f0; color: #999; }
+.status-tag.pending { background: var(--bg-dim); color: var(--text-muted); }
 .status-tag.processing {
-  background: #ecf5ff;
-  color: #409eff;
+  background: var(--primary-bg);
+  color: var(--primary);
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -214,7 +214,7 @@ function hasResults(): boolean {
   content: '';
   width: 10px;
   height: 10px;
-  border: 2px solid #409eff;
+  border: 2px solid var(--primary);
   border-top-color: transparent;
   border-radius: 50%;
   animation: proc-spin 0.6s linear infinite;
@@ -222,14 +222,14 @@ function hasResults(): boolean {
 @keyframes proc-spin {
   to { transform: rotate(360deg); }
 }
-.status-tag.done { background: #f0f9eb; color: #67c23a; }
-.status-tag.error { background: #fef0f0; color: #f56c6c; }
+.status-tag.done { background: var(--success-bg); color: var(--success); }
+.status-tag.error { background: var(--danger-bg); color: var(--danger); }
 .rate {
-  color: #67c23a;
+  color: var(--success);
   font-weight: 500;
 }
 .rate-negative {
-  color: #e6a23c;
+  color: var(--warning);
   font-weight: 500;
 }
 

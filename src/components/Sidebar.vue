@@ -51,14 +51,14 @@ function switchMode(mode: AppMode) {
 <style scoped>
 .sidebar {
   width: 160px;
-  background: #fff;
-  border-right: 1px solid #eee;
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border);
   padding: 16px 0;
 }
 .section-title {
   font-size: 11px;
   text-transform: uppercase;
-  color: #999;
+  color: var(--text-muted);
   padding: 0 16px;
   margin-bottom: 8px;
   letter-spacing: 1px;
@@ -70,15 +70,15 @@ function switchMode(mode: AppMode) {
   padding: 8px 16px;
   cursor: pointer;
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
   transition: all 0.15s;
 }
 .mode-item:hover {
-  background: #f5f5f5;
+  background: var(--bg-hover);
 }
 .mode-item.active {
-  background: #e8f4f8;
-  color: #409eff;
+  background: var(--bg-active);
+  color: var(--primary);
   font-weight: 600;
 }
 .mode-icon {
@@ -93,7 +93,7 @@ function switchMode(mode: AppMode) {
     right: 0;
     width: 100%;
     border-right: none;
-    border-top: 1px solid #eee;
+    border-top: 1px solid var(--border);
     padding: 0;
     z-index: 100;
   }
@@ -110,8 +110,8 @@ function switchMode(mode: AppMode) {
     font-size: 12px;
   }
   .mode-item.active {
-    border-top: 2px solid #409eff;
-    background: #f5faff;
+    border-top: 2px solid var(--primary);
+    background: var(--primary-bg);
   }
 }
 </style>

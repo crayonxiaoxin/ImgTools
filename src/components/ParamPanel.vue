@@ -183,7 +183,7 @@ function setMaxWidth(val: number) {
   font-size: 13px;
   font-weight: 600;
   margin-bottom: 16px;
-  color: #333;
+  color: var(--text);
 }
 .param-group {
   margin-bottom: 16px;
@@ -191,13 +191,13 @@ function setMaxWidth(val: number) {
 .param-label {
   display: block;
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 6px;
 }
 .toggle-group {
   display: flex;
   gap: 4px;
-  background: #f0f0f0;
+  background: var(--bg-dim);
   border-radius: 6px;
   padding: 2px;
 }
@@ -209,11 +209,11 @@ function setMaxWidth(val: number) {
   border-radius: 4px;
   font-size: 13px;
   cursor: pointer;
-  color: #666;
+  color: var(--text-secondary);
 }
 .toggle-btn.active {
-  background: #fff;
-  color: #409eff;
+  background: var(--bg-surface);
+  color: var(--primary);
   font-weight: 600;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
@@ -231,26 +231,26 @@ function setMaxWidth(val: number) {
   gap: 4px;
 }
 .format-btn {
-  border: 1px solid #ddd;
-  background: #fff;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-surface);
   padding: 4px 10px;
   border-radius: 4px;
   font-size: 12px;
   cursor: pointer;
-  color: #666;
+  color: var(--text-secondary);
 }
 .format-btn.active {
-  border-color: #409eff;
-  color: #409eff;
-  background: #ecf5ff;
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-bg);
 }
 .select-input {
   width: 100%;
   padding: 6px 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-strong);
   border-radius: 4px;
   font-size: 13px;
-  background: #fff;
+  background: var(--bg-surface);
 }
 .max-width-row {
   display: flex;
@@ -260,13 +260,13 @@ function setMaxWidth(val: number) {
 .width-input {
   width: 80px;
   padding: 4px 6px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-strong);
   border-radius: 4px;
   font-size: 13px;
 }
 .width-unit {
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 @media (max-width: 768px) {

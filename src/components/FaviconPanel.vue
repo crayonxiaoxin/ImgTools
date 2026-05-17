@@ -344,24 +344,24 @@ async function downloadZip() {
 
 /* ── drop zone ── */
 .drop-hero {
-  border: 2px dashed #d0d5dd;
+  border: 2px dashed var(--drop-border);
   border-radius: 20px;
   padding: 64px 24px;
   text-align: center;
   cursor: pointer;
   transition: all 0.25s;
-  background: #fafbfc;
+  background: var(--drop-bg);
 }
 .drop-hero:hover, .drop-hero.dragging {
-  border-color: #409eff;
-  background: #f0f7ff;
+  border-color: var(--primary);
+  background: var(--drop-hover-bg);
 }
-.drop-icon { color: #98a2b3; margin-bottom: 12px; }
+.drop-icon { color: var(--placeholder); margin-bottom: 12px; }
 .drop-hero:hover .drop-icon,
-.drop-hero.dragging .drop-icon { color: #409eff; }
-.drop-title { font-size: 16px; font-weight: 600; color: #1d2939; margin-bottom: 4px; }
-.drop-hint { font-size: 13px; color: #98a2b3; }
-.drop-sub { font-size: 12px; color: #b0b7c3; margin-top: 12px; }
+.drop-hero.dragging .drop-icon { color: var(--primary); }
+.drop-title { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.drop-hint { font-size: 13px; color: var(--placeholder); }
+.drop-sub { font-size: 12px; color: var(--chip-hover); margin-top: 12px; }
 
 /* ── work area ── */
 .work-area {
@@ -378,15 +378,15 @@ async function downloadZip() {
   align-items: center;
   margin-bottom: 8px;
 }
-.crop-label { font-size: 14px; font-weight: 600; color: #1d2939; }
-.re-pick { font-size: 12px; color: #409eff; cursor: pointer; }
+.crop-label { font-size: 14px; font-weight: 600; color: var(--text); }
+.re-pick { font-size: 12px; color: var(--primary); cursor: pointer; }
 .re-pick:hover { text-decoration: underline; }
 .crop-container {
   position: relative;
-  background: #f0f0f0;
+  background: var(--bg-dim);
   border-radius: 16px;
   overflow: hidden;
-  border: 1px solid #e4e7ec;
+  border: 1px solid var(--card-border);
   user-select: none;
 }
 .crop-image {
@@ -395,7 +395,7 @@ async function downloadZip() {
 }
 .crop-box {
   position: absolute;
-  border: 2px solid #fff;
+  border: 2px solid var(--bg-surface);
   box-shadow: 0 0 0 9999px rgba(0,0,0,0.45);
   cursor: move;
   z-index: 2;
@@ -406,35 +406,35 @@ async function downloadZip() {
   bottom: -4px;
   width: 14px;
   height: 14px;
-  background: #fff;
-  border: 2px solid #409eff;
+  background: var(--bg-surface);
+  border: 2px solid var(--primary);
   border-radius: 3px;
   cursor: nwse-resize;
   z-index: 3;
 }
-.crop-hint { font-size: 11px; color: #98a2b3; margin-top: 6px; text-align: center; }
+.crop-hint { font-size: 11px; color: var(--placeholder); margin-top: 6px; text-align: center; }
 
 /* ── controls ── */
 .controls-col { flex: 1; min-width: 0; }
-.section-title { font-size: 14px; font-weight: 600; color: #1d2939; margin-bottom: 12px; }
+.section-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 12px; }
 .size-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
 .size-chip {
   padding: 8px 14px;
-  border: 1px solid #e4e7ec;
+  border: 1px solid var(--card-border);
   border-radius: 10px;
-  background: #fff;
+  background: var(--bg-surface);
   cursor: pointer;
   font-size: 13px;
-  color: #344054;
+  color: var(--text-secondary);
   transition: all 0.15s;
 }
-.size-chip:hover { border-color: #b0b7c3; }
+.size-chip:hover { border-color: var(--chip-hover); }
 .size-chip.active {
-  border-color: #409eff;
-  background: #eff6ff;
-  color: #2563eb;
+  border-color: var(--primary);
+  background: var(--primary-bg);
+  color: var(--primary-text);
 }
-.size-hint { font-size: 12px; color: #98a2b3; margin-bottom: 16px; }
+.size-hint { font-size: 12px; color: var(--placeholder); margin-bottom: 16px; }
 
 .gen-btn {
   display: inline-flex;
@@ -443,25 +443,25 @@ async function downloadZip() {
   padding: 10px 28px;
   border: none;
   border-radius: 10px;
-  background: #409eff;
-  color: #fff;
+  background: var(--primary);
+  color: var(--bg-surface);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
 }
-.gen-btn:hover:not(:disabled) { background: #2d7ee0; }
+.gen-btn:hover:not(:disabled) { background: var(--primary-hover); }
 .gen-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .spinner {
   width: 14px; height: 14px;
   border: 2px solid rgba(255,255,255,0.5);
-  border-top-color: #fff;
+  border-top-color: var(--bg-surface);
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ── results ── */
-.results-area { border-top: 1px solid #e4e7ec; padding-top: 24px; margin-top: 32px; }
+.results-area { border-top: 1px solid var(--card-border); padding-top: 24px; margin-top: 32px; }
 .results-header {
   display: flex;
   justify-content: space-between;
@@ -474,21 +474,21 @@ async function downloadZip() {
   align-items: center;
   gap: 5px;
   padding: 6px 14px;
-  border: 1px solid #d0d5dd;
+  border: 1px solid var(--drop-border);
   border-radius: 8px;
-  background: #fff;
+  background: var(--bg-surface);
   font-size: 13px;
   cursor: pointer;
-  color: #344054;
+  color: var(--text-secondary);
 }
-.action-btn:hover:not(:disabled) { background: #f9fafb; }
+.action-btn:hover:not(:disabled) { background: var(--drop-hover-bg); }
 .action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .results-grid { display: flex; gap: 12px; flex-wrap: wrap; }
 .result-card {
-  border: 1px solid #e4e7ec;
+  border: 1px solid var(--card-border);
   border-radius: 12px;
   overflow: hidden;
-  background: #fff;
+  background: var(--bg-surface);
   width: 128px;
 }
 .result-preview {
@@ -496,7 +496,7 @@ async function downloadZip() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #fafbfc;
+  background: var(--card-bg);
 }
 .result-preview img { display: block; image-rendering: pixelated; }
 .result-info {
@@ -504,10 +504,10 @@ async function downloadZip() {
   justify-content: space-between;
   align-items: center;
   padding: 6px 10px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--bg-dim);
 }
-.result-size { font-size: 12px; color: #667085; }
-.result-dl { font-size: 12px; color: #409eff; text-decoration: none; }
+.result-size { font-size: 12px; color: var(--text-muted); }
+.result-dl { font-size: 12px; color: var(--primary); text-decoration: none; }
 .result-dl:hover { text-decoration: underline; }
 
 @media (max-width: 640px) {

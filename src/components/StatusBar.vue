@@ -59,10 +59,10 @@ onMounted(() => {
   display: flex;
   align-items: center;
   padding: 8px 16px;
-  background: #fafafa;
-  border-top: 1px solid #eee;
+  background: var(--bg-faint);
+  border-top: 1px solid var(--border);
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
 }
 .status-item {
   display: flex;
@@ -70,16 +70,16 @@ onMounted(() => {
   gap: 6px;
 }
 .status-item.error {
-  color: #f56c6c;
+  color: var(--danger);
 }
 .divider {
-  color: #ddd;
+  color: var(--border-strong);
 }
 .spinner {
   width: 12px;
   height: 12px;
-  border: 2px solid #ddd;
-  border-top-color: #409eff;
+  border: 2px solid var(--border-strong);
+  border-top-color: var(--primary);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
