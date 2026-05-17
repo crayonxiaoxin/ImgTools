@@ -1,0 +1,87 @@
+# ImgTools — 项目开发指南
+
+## 项目概述
+
+纯浏览器端图片处理工具，基于 `wasm-vips`（libvips 的 WASM 移植）实现图片压缩和格式转换，无需服务端。
+
+## 技术栈
+
+- **框架**: Vue 3 + Vite + TypeScript
+- **状态管理**: Pinia (Composition API)
+- **图像引擎**: [wasm-vips](https://github.com/kleisauke/wasm-vips) ^0.0.17
+- **打包**: JSZip（批量导出）
+- **CSS**: 手写 Scoped CSS（无 UI 库）
+
+## 目录结构
+
+```
+src/
+├── core/           # 核心处理层
+│   ├── formats.ts  # 格式支持矩阵 + 检测工具
+│   ├── vips.ts     # wasm-vips 单例初始化
+│   ├── compress.ts # 压缩参数 → vips 编码选项
+│   └── pipeline.ts # 解码→变换→编码流水线
+├── composables/    # 逻辑层
+│   ├── useImageProcessor.ts  # 单图/批量处理
+│   └── useBatchExport.ts     # 导出/ZIP 下载
+├── stores/
+│   └── imageStore.ts  # Pinia 全局状态
+├── components/     # UI 组件
+│   ├── AppHeader.vue
+│   ├── Sidebar.vue
+│   ├── DropZone.vue
+│   ├── ParamPanel.vue
+│   ├── BatchList.vue
+│   ├── StatusBar.vue
+│   └── ImagePreview.vue（已从布局中移除，保留文件）
+├── utils/
+│   └── format.ts  # 文件大小格式化
+├── App.vue        # 根布局
+└── main.ts        # 入口
+```
+
+## 关键架构决策
+
+### 跨域隔离（COOP/COEP）
+wasm-vips 使用 SharedArrayBuffer，页面必须返回以下头：
+```
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Embedder-Policy: require-corp
+```
+配置在 `vite.config.ts`（开发）和 `vercel.json`（生产）。
+
+### WASM 初始化
+`core/vips.ts` 使用 promise 守卫防止并发初始化，30 秒超时，支持事件监听器（`onVipsReady`）。
+
+### 双模式架构
+- **压缩模式**: 质量滑块 + 有损/无损 + 输出格式 + 自动降质（确保文件真正变小）
+- **转换模式**: 格式网格按钮，使用 quality=100 最大质量编码
+
+### 编码方式
+使用 `writeToBuffer('.jpg[Q=80,optimize_coding=true]')` 内联格式字符串，而非各格式的独立 save 方法。
+
+### 格式支持
+JPEG/PNG/WebP/AVIF/BMP/TIFF 可读写，GIF/SVG 只读。
+PNG 有损压缩通过调色板量化（palette quantization）实现。
+
+### 自动降质
+同格式压缩时，如果编码结果比原图大，自动逐级降低 quality（步长 10，最低 Q=10）直到文件真正变小。
+
+## 常用命令
+
+```bash
+npm run dev      # 开发服务器
+npm run build    # 类型检查 + 生产构建
+npx vite build   # 仅构建（跳过类型检查）
+```
+
+## 部署
+
+Vercel 部署配置见 `vercel.json`。务必保持 COOP/COEP 头。
+
+## 注意事项
+
+1. 添加新的图像格式时，需同时更新 `formats.ts` 的矩阵和 `pipeline.ts` 的编码映射
+2. `wasm-vips` 在 `optimizeDeps.exclude` 中排除，禁止预构建
+3. 所有 blob URL 必须配对 `revokeObjectURL`，防止内存泄漏
+4. 跨模式切换时，`setMode` 会重置所有处理结果和配置参数
