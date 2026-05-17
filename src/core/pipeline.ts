@@ -1,4 +1,6 @@
 import { initVips } from './vips'
+import type Vips from 'wasm-vips'
+import type { ImageFormat } from './formats'
 import type { CompressOptions } from './compress'
 import { buildEncodeOptions } from './compress'
 
@@ -11,15 +13,20 @@ export interface ProcessResult {
 
 export async function processImage(
   buffer: ArrayBuffer,
-  originalFormat: string,
+  originalFormat: ImageFormat,
   options: CompressOptions,
 ): Promise<ProcessResult> {
   const v = await initVips()
-  const image = v.Image.newFromBuffer(new Uint8Array(buffer))
+  let image
+  try {
+    image = v.Image.newFromBuffer(new Uint8Array(buffer))
+  } catch (e) {
+    throw new Error(`Failed to decode image: ${e instanceof Error ? e.message : String(e)}`)
+  }
 
   let img = image
 
-  if (options.maxWidth && options.maxWidth > 0) {
+  if (options.maxWidth) {
     const width = img.width
     const height = img.height
     if (width > options.maxWidth) {
@@ -28,7 +35,7 @@ export async function processImage(
     }
   }
 
-  const encode = buildEncodeOptions(options, originalFormat as any)
+  const encode = buildEncodeOptions(options, originalFormat)
 
   let result: Uint8Array
   switch (encode.format) {
@@ -68,6 +75,7 @@ export async function getImageInfo(buffer: ArrayBuffer): Promise<{ width: number
   return {
     width: image.width,
     height: image.height,
+    // Vips type definition doesn't expose the pages property, but it exists at runtime
     pages: (image as any).pages,
   }
 }
