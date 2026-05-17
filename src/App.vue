@@ -1,10 +1,16 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useImageStore } from '@/stores/imageStore'
 import AppHeader from '@/components/AppHeader.vue'
 import Sidebar from '@/components/Sidebar.vue'
 import DropZone from '@/components/DropZone.vue'
 import ParamPanel from '@/components/ParamPanel.vue'
+import FaviconPanel from '@/components/FaviconPanel.vue'
 import BatchList from '@/components/BatchList.vue'
 import StatusBar from '@/components/StatusBar.vue'
+
+const store = useImageStore()
+const isFaviconMode = computed(() => store.activeMode === 'favicon')
 </script>
 
 <template>
@@ -13,15 +19,27 @@ import StatusBar from '@/components/StatusBar.vue'
     <div class="app-body">
       <Sidebar />
       <main class="main-area">
-        <div class="content-panels">
-          <div class="left-panel">
-            <DropZone />
+        <template v-if="isFaviconMode">
+          <div class="content-panels">
+            <div class="left-panel">
+              <DropZone />
+            </div>
+            <div class="right-panel">
+              <FaviconPanel />
+            </div>
           </div>
-          <div class="right-panel">
-            <ParamPanel />
+        </template>
+        <template v-else>
+          <div class="content-panels">
+            <div class="left-panel">
+              <DropZone />
+            </div>
+            <div class="right-panel">
+              <ParamPanel />
+            </div>
           </div>
-        </div>
-        <BatchList />
+          <BatchList />
+        </template>
       </main>
     </div>
     <StatusBar />

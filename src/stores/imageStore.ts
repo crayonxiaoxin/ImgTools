@@ -20,9 +20,23 @@ export interface ImageItem {
     targetFormat: ImageFormat
     maxWidth?: number
   }
+  faviconResults?: FaviconResult[]
+  faviconConfig?: FaviconConfig
 }
 
-export type AppMode = 'compress' | 'convert'
+export type AppMode = 'compress' | 'convert' | 'favicon'
+
+export interface FaviconResult {
+  url: string
+  size: number
+}
+
+export interface FaviconConfig {
+  sizes: number[]
+  cropX: number
+  cropY: number
+  cropSize: number
+}
 
 let idCounter = 0
 function nextId(): string {
@@ -108,6 +122,14 @@ export const useImageStore = defineStore('images', () => {
     vipsReady.value = val
   }
 
+  function setFaviconResults(id: string, results: FaviconResult[]) {
+    const item = images.value.find(i => i.id === id)
+    if (!item) return
+    item.faviconResults?.forEach(r => URL.revokeObjectURL(r.url))
+    item.faviconResults = results
+    item.status = 'done'
+  }
+
   function setMode(mode: AppMode) {
     activeMode.value = mode
     images.value.forEach(item => {
@@ -116,6 +138,10 @@ export const useImageStore = defineStore('images', () => {
       item.resultSize = undefined
       item.errorMessage = undefined
       item.status = 'pending'
+      if (item.faviconResults) {
+        item.faviconResults.forEach(r => URL.revokeObjectURL(r.url))
+        item.faviconResults = undefined
+      }
       item.config.quality = 80
       item.config.lossless = false
       item.config.maxWidth = undefined
@@ -129,5 +155,6 @@ export const useImageStore = defineStore('images', () => {
     images, activeMode, processing, vipsReady, selectedFormats,
     addImages, removeImage, clearAll, updateConfig,
     setResult, setError, setProcessing, setVipsReady, setMode,
+    setFaviconResults,
   }
 })

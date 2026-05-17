@@ -40,3 +40,6 @@ export function getWritableFormats(): ImageFormat[] {
 export function isFormatSupported(format: ImageFormat): boolean {
   return Object.hasOwn(FORMATS, format)
 }
+
+export const FAVICON_SIZES = [16, 32, 48, 64, 128, 256] as const
+export type FaviconSize = typeof FAVICON_SIZES[number]

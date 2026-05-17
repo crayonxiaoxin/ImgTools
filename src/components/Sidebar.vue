@@ -29,6 +29,14 @@ function switchMode(mode: AppMode) {
         <span class="mode-icon">🔄</span>
         <span>转换</span>
       </div>
+      <div
+        class="mode-item"
+        :class="{ active: store.activeMode === 'favicon' }"
+        @click="switchMode('favicon')"
+      >
+        <span class="mode-icon">⭐</span>
+        <span>图标</span>
+      </div>
     </div>
   </aside>
 </template>
