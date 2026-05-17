@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useImageStore } from '@/stores/imageStore'
 import { getWritableFormats, FORMATS } from '@/core/formats'
+
+const { t } = useI18n()
 
 const store = useImageStore()
 const writableFormats = computed(() => getWritableFormats())
@@ -85,29 +88,29 @@ function setMaxWidth(val: number) {
 
 <template>
   <div class="param-panel">
-    <h3 class="panel-title">参数</h3>
+    <h3 class="panel-title">{{ t('param.title') }}</h3>
 
     <!-- Compress mode -->
     <template v-if="store.activeMode === 'compress'">
       <div class="param-group">
-        <label class="param-label">压缩类型</label>
+        <label class="param-label">{{ t('param.compressType') }}</label>
         <div class="toggle-group">
           <button
             class="toggle-btn"
             :class="{ active: !store.images[0]?.config.lossless }"
             :disabled="!lossySupported"
             @click="updateGlobalConfig('lossless', false)"
-          >有损</button>
+          >{{ t('param.lossy') }}</button>
           <button
             class="toggle-btn"
             :class="{ active: store.images[0]?.config.lossless || !lossySupported }"
             @click="updateGlobalConfig('lossless', true)"
-          >无损</button>
+          >{{ t('param.lossless') }}</button>
         </div>
       </div>
 
       <div class="param-group" v-if="qualityVisible">
-        <label class="param-label">质量: {{ store.images[0]?.config.quality ?? 80 }}</label>
+        <label class="param-label">{{ t('param.quality', { v: store.images[0]?.config.quality ?? 80 }) }}</label>
         <input
           type="range"
           min="1"
@@ -119,13 +122,13 @@ function setMaxWidth(val: number) {
       </div>
 
       <div class="param-group">
-        <label class="param-label">输出格式</label>
+        <label class="param-label">{{ t('param.outputFormat') }}</label>
         <select
           :value="outputFormat ?? '__original__'"
           @change="setOutputFormat(($event.target as HTMLSelectElement).value === '__original__' ? null : ($event.target as HTMLSelectElement).value)"
           class="select-input"
         >
-          <option value="__original__">按原格式输出</option>
+          <option value="__original__">{{ t('param.originalFormat') }}</option>
           <option v-for="fmt in writableFormats" :key="fmt" :value="fmt">
             {{ fmt.toUpperCase() }}
           </option>
@@ -136,7 +139,7 @@ function setMaxWidth(val: number) {
     <!-- Convert mode -->
     <template v-if="store.activeMode === 'convert'">
       <div class="param-group">
-        <label class="param-label">目标格式</label>
+        <label class="param-label">{{ t('param.targetFormat') }}</label>
         <div class="format-grid">
           <button
             v-for="fmt in writableFormats"
@@ -156,7 +159,7 @@ function setMaxWidth(val: number) {
           :checked="maxWidthEnabled"
           @change="toggleMaxWidth(($event.target as HTMLInputElement).checked)"
         />
-        <label class="param-label" style="margin:0;cursor:pointer">限制最大宽度</label>
+        <label class="param-label" style="margin:0;cursor:pointer">{{ t('param.maxWidth') }}</label>
         <input
           v-if="maxWidthEnabled"
           type="number"
@@ -166,7 +169,7 @@ function setMaxWidth(val: number) {
           @input="setMaxWidth(Number(($event.target as HTMLInputElement).value))"
           class="width-input"
         />
-        <span v-if="maxWidthEnabled" class="width-unit">px</span>
+        <span v-if="maxWidthEnabled" class="width-unit">{{ t('param.px') }}</span>
       </div>
     </div>
   </div>

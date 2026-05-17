@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useImageStore } from '@/stores/imageStore'
 import { initVips, isVipsReady, getVipsError, onVipsReady } from '@/core/vips'
+
+const { t } = useI18n()
 
 const store = useImageStore()
 const loading = ref(!isVipsReady())
@@ -18,7 +21,7 @@ onMounted(() => {
         store.setVipsReady(true)
       })
       .catch((e: any) => {
-        error.value = e.message ?? 'Failed to load image processor'
+        error.value = e.message ?? t('error.timeout')
         loading.value = false
       })
   } else {
@@ -38,15 +41,15 @@ onMounted(() => {
   <div class="status-bar">
     <div v-if="loading" class="status-item">
       <span class="spinner"></span>
-      加载图像引擎...
+      {{ t('status.loading') }}
     </div>
     <div v-else-if="error" class="status-item error">
-      引擎加载失败: {{ error }}
+      {{ t('status.failed', { msg: error }) }}
     </div>
     <div v-else class="status-item">
-      <span>引擎就绪</span>
+      <span>{{ t('status.ready') }}</span>
       <span v-if="totalCount > 0" class="divider">|</span>
-      <span v-if="totalCount > 0">{{ doneCount }}/{{ totalCount }} 已完成</span>
+      <span v-if="totalCount > 0">{{ t('status.progress', { done: doneCount, total: totalCount }) }}</span>
     </div>
   </div>
 </template>

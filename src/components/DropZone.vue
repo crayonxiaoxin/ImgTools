@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useImageStore } from '@/stores/imageStore'
 
+const { t } = useI18n()
 const store = useImageStore()
 const dragging = ref(false)
 const inputRef = ref<HTMLInputElement | null>(null)
@@ -63,8 +65,8 @@ function selectFiles() {
         <polyline points="17 8 12 3 7 8" />
         <line x1="12" y1="3" x2="12" y2="15" />
       </svg>
-      <p>将图片拖拽到此处</p>
-      <p class="hint">或点击选择文件</p>
+      <p>{{ t('dropzone.prompt') }}</p>
+      <p class="hint">{{ t('dropzone.hint') }}</p>
     </div>
   </div>
 </template>

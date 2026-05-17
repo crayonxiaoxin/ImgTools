@@ -60,11 +60,12 @@ body {
 .app-layout {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh;
 }
 .app-body {
   display: flex;
   flex: 1;
+  min-height: 0;
 }
 .main-area {
   flex: 1;

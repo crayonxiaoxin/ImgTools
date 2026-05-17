@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
 import { useImageStore } from '@/stores/imageStore'
 import type { AppMode } from '@/stores/imageStore'
 
+const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
 const store = useImageStore()
@@ -17,14 +19,14 @@ function switchMode(mode: AppMode) {
 <template>
   <aside class="sidebar">
     <div class="mode-section">
-      <h3 class="section-title">模式</h3>
+      <h3 class="section-title">{{ t('sidebar.mode') }}</h3>
       <div
         class="mode-item"
         :class="{ active: store.activeMode === 'compress' }"
         @click="switchMode('compress')"
       >
         <span class="mode-icon">📦</span>
-        <span>压缩</span>
+        <span>{{ t('sidebar.compress') }}</span>
       </div>
       <div
         class="mode-item"
@@ -32,7 +34,7 @@ function switchMode(mode: AppMode) {
         @click="switchMode('convert')"
       >
         <span class="mode-icon">🔄</span>
-        <span>转换</span>
+        <span>{{ t('sidebar.convert') }}</span>
       </div>
       <div
         class="mode-item"
@@ -40,7 +42,7 @@ function switchMode(mode: AppMode) {
         @click="switchMode('favicon')"
       >
         <span class="mode-icon">⭐</span>
-        <span>Favicon</span>
+        <span>{{ t('sidebar.favicon') }}</span>
       </div>
     </div>
   </aside>

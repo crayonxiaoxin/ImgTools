@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useImageStore } from '@/stores/imageStore'
 import { FAVICON_SIZES } from '@/core/formats'
 import { initVips } from '@/core/vips'
 import { createIco } from '@/utils/ico'
 import { formatSize } from '@/utils/format'
 import JSZip from 'jszip'
+
+const { t } = useI18n()
 
 const store = useImageStore()
 const pickerRef = ref<HTMLInputElement>()
@@ -230,9 +233,9 @@ async function downloadZip() {
           <path d="M21 15l-5-5L5 21" />
         </svg>
       </div>
-      <p class="drop-title">上传图片制作图标</p>
-      <p class="drop-hint">支持 JPEG / PNG / WebP / AVIF 格式</p>
-      <p class="drop-sub">点击或拖拽上传</p>
+      <p class="drop-title">{{ t('favicon.dropTitle') }}</p>
+      <p class="drop-hint">{{ t('favicon.dropHint') }}</p>
+      <p class="drop-sub">{{ t('favicon.dropSub') }}</p>
     </div>
 
     <!-- Work area -->
@@ -241,8 +244,8 @@ async function downloadZip() {
         <!-- Left: crop -->
         <div class="crop-col">
           <div class="crop-toolbar">
-            <span class="crop-label">裁剪区域</span>
-            <span class="re-pick" @click="openPicker">重新选择</span>
+            <span class="crop-label">{{ t('favicon.cropLabel') }}</span>
+            <span class="re-pick" @click="openPicker">{{ t('favicon.repick') }}</span>
           </div>
           <div
             ref="cropContainer"
@@ -273,12 +276,12 @@ async function downloadZip() {
               <div class="crop-handle" @mousedown="onResizeDown"></div>
             </div>
           </div>
-          <p class="crop-hint">拖拽方框移动 · 拖拽右下角调整大小</p>
+          <p class="crop-hint">{{ t('favicon.cropHint') }}</p>
         </div>
 
         <!-- Right: controls -->
         <div class="controls-col">
-          <h3 class="section-title">输出尺寸</h3>
+          <h3 class="section-title">{{ t('favicon.outputSizes') }}</h3>
           <div class="size-grid">
             <button
               v-for="s in FAVICON_SIZES"
@@ -288,7 +291,7 @@ async function downloadZip() {
               @click="toggleSize(s)"
             >{{ s }}×{{ s }}</button>
           </div>
-          <p class="size-hint">已选 {{ selectedSizes.length }} 个尺寸</p>
+          <p class="size-hint">{{ t('favicon.sizeCount', { n: selectedSizes.length }) }}</p>
 
           <button
             class="gen-btn"
@@ -296,7 +299,7 @@ async function downloadZip() {
             @click="generate"
           >
             <span v-if="isProcessing" class="spinner"></span>
-            {{ isProcessing ? '生成中…' : '生成图标' }}
+            {{ isProcessing ? t('favicon.generating') : t('favicon.generate') }}
           </button>
         </div>
       </div>
@@ -304,15 +307,15 @@ async function downloadZip() {
       <!-- Results -->
       <div v-if="current.faviconResults" class="results-area">
         <div class="results-header">
-          <h3 class="section-title">预览</h3>
+          <h3 class="section-title">{{ t('favicon.preview') }}</h3>
           <div class="results-actions">
             <button class="action-btn" :disabled="!icoUrl" @click="downloadIco">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              下载 .ICO
+              {{ t('favicon.downloadIco') }}
             </button>
             <button class="action-btn" @click="downloadZip">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              下载 ZIP
+              {{ t('favicon.downloadZip') }}
             </button>
           </div>
         </div>
@@ -323,7 +326,7 @@ async function downloadZip() {
             </div>
             <div class="result-info">
               <span class="result-size">{{ r.size }}×{{ r.size }}</span>
-              <a :href="r.url" :download="`favicon-${r.size}x${r.size}.png`" class="result-dl">下载</a>
+              <a :href="r.url" :download="`favicon-${r.size}x${r.size}.png`" class="result-dl">{{ t('favicon.download') }}</a>
             </div>
           </div>
         </div>

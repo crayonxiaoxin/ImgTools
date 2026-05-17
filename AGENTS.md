@@ -90,6 +90,17 @@ npx vite build   # 仅构建（跳过类型检查）
 
 Vercel 部署配置见 `vercel.json`。务必保持 COOP/COEP 头。
 
+### 多语言 (i18n)
+使用 `vue-i18n` v11，支持简体中文/繁体中文/英文。语言文件在 `src/locales/`。
+自动检测浏览器语言，也可在页面右上角手动切换（偏好存入 localStorage）。
+新增 UI 文本时，需同步更新三个 locale 文件。
+
+### URL 路由
+使用 `vue-router`（hash 模式）。路由定义在 `src/router.ts`，页面组件在 `src/views/`。
+- `/#/compress` — 压缩模式
+- `/#/convert` — 转换模式
+- `/#/favicon` — Favicon 模式
+
 ## 注意事项
 
 1. 添加新的图像格式时，需同时更新 `formats.ts` 的矩阵和 `pipeline.ts` 的编码映射

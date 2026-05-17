@@ -1,19 +1,21 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { useImageStore } from '@/stores/imageStore'
 import { useImageProcessor } from '@/composables/useImageProcessor'
 import { useBatchExport } from '@/composables/useBatchExport'
 import { formatSize } from '@/utils/format'
 
+const { t } = useI18n()
 const store = useImageStore()
+
+const statusKey: Record<string, string> = {
+  pending: 'batch.statusPending',
+  processing: 'batch.statusProcessing',
+  done: 'batch.statusDone',
+  error: 'batch.statusError',
+}
 const { processAll } = useImageProcessor()
 const { downloadSingle, downloadAllAsZip, downloadAllIndividual } = useBatchExport()
-
-const statusLabels: Record<string, string> = {
-  pending: '等待处理',
-  processing: '处理中',
-  done: '已完成',
-  error: '失败',
-}
 
 function hasResults(): boolean {
   return store.images.some(i => i.status === 'done')
@@ -23,30 +25,30 @@ function hasResults(): boolean {
 <template>
   <div class="batch-list">
     <div class="batch-header">
-      <h3>文件列表 ({{ store.images.length }})</h3>
+      <h3>{{ t('batch.title', { n: store.images.length }) }}</h3>
       <div class="batch-actions">
         <button
           class="btn btn-primary"
           :disabled="store.processing"
           @click="processAll"
         >
-          {{ store.processing ? '处理中...' : '开始处理' }}
+          {{ store.processing ? t('batch.processing') : t('batch.start') }}
         </button>
         <button
           class="btn"
           :disabled="!hasResults()"
           @click="downloadAllAsZip"
-        >导出 ZIP</button>
+        >{{ t('batch.exportZip') }}</button>
         <button
           class="btn"
           :disabled="!hasResults()"
           @click="downloadAllIndividual"
-        >逐个下载</button>
+        >{{ t('batch.downloadAll') }}</button>
         <button
           class="btn btn-danger"
           :disabled="store.images.length === 0"
           @click="store.clearAll()"
-        >清空</button>
+        >{{ t('batch.clear') }}</button>
       </div>
     </div>
     <div class="batch-table-wrap" v-if="store.images.length > 0">
@@ -54,12 +56,12 @@ function hasResults(): boolean {
         <thead>
           <tr>
             <th></th>
-            <th>文件名</th>
-            <th>原大小</th>
-            <th>格式</th>
-            <th>结果</th>
-            <th>状态</th>
-            <th>操作</th>
+            <th>{{ t('batch.colFilename') }}</th>
+            <th>{{ t('batch.colOriginalSize') }}</th>
+            <th>{{ t('batch.colFormat') }}</th>
+            <th>{{ t('batch.colResult') }}</th>
+            <th>{{ t('batch.colStatus') }}</th>
+            <th>{{ t('batch.colAction') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -80,13 +82,13 @@ function hasResults(): boolean {
                 <span v-if="item.resultSize < item.size" class="rate">
                   → {{ formatSize(item.resultSize) }} (-{{ ((1 - item.resultSize / item.size) * 100).toFixed(0) }}%)
                 </span>
-                <span v-else class="rate-negative">未压缩</span>
+                <span v-else class="rate-negative">{{ t('batch.uncompressed') }}</span>
               </template>
               <span v-else>-</span>
             </td>
             <td>
               <span class="status-tag" :class="item.status">
-                {{ statusLabels[item.status] }}
+                {{ t(statusKey[item.status]) }}
               </span>
             </td>
             <td>
@@ -94,7 +96,7 @@ function hasResults(): boolean {
                 v-if="item.status === 'done'"
                 class="btn btn-sm"
                 @click="downloadSingle(item.id)"
-              >下载</button>
+              >{{ t('batch.download') }}</button>
             </td>
           </tr>
         </tbody>
