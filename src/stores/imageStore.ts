@@ -42,20 +42,23 @@ export const useImageStore = defineStore('images', () => {
   })
 
   function addImages(files: File[]) {
-    const items: ImageItem[] = files.map(file => ({
-      id: nextId(),
-      file,
-      name: file.name,
-      size: file.size,
-      format: detectFormat(file.name, file.type),
-      status: 'pending' as const,
-      previewUrl: URL.createObjectURL(file),
-      config: {
-        quality: 80,
-        lossless: false,
-        targetFormat: 'webp' as ImageFormat,
-      },
-    }))
+    const items: ImageItem[] = files.map(file => {
+      const fmt = detectFormat(file.name, file.type)
+      return {
+        id: nextId(),
+        file,
+        name: file.name,
+        size: file.size,
+        format: fmt,
+        status: 'pending' as const,
+        previewUrl: URL.createObjectURL(file),
+        config: {
+          quality: 80,
+          lossless: false,
+          targetFormat: (fmt ?? 'jpeg') as ImageFormat,
+        },
+      }
+    })
     images.value.push(...items)
   }
 

@@ -35,9 +35,6 @@ export async function processImage(
 
   const encode = buildEncodeOptions(options, originalFormat)
 
-  const optionsForSave: Record<string, any> = { ...encode.options }
-  delete optionsForSave.resize
-
   const extMap: Record<string, string> = {
     jpeg: '.jpg',
     png: '.png',
@@ -50,11 +47,30 @@ export async function processImage(
   const ext = extMap[encode.format]
   if (!ext) throw new Error(`Unsupported output format: ${encode.format}`)
 
+  // Build format string with inline options, e.g. ".jpg[Q=80]"
+  const optParts: string[] = []
+  for (const [k, v] of Object.entries(encode.options)) {
+    if (k === 'resize') continue
+    if (typeof v === 'boolean') optParts.push(`${k}=${v}`)
+    else optParts.push(`${k}=${v}`)
+  }
+  const formatString = optParts.length > 0 ? `${ext}[${optParts.join(',')}]` : ext
+
   let result: Uint8Array
   try {
-    result = img.writeToBuffer(ext, optionsForSave)
+    result = img.writeToBuffer(formatString)
   } catch (e) {
     throw new Error(`Failed to encode image as ${encode.format}: ${e instanceof Error ? e.message : String(e)}`)
+  }
+
+  // In compress mode (same format), keep original if re-encode made it larger
+  if (encode.format === originalFormat && result.length > buffer.byteLength) {
+    return {
+      data: new Uint8Array(buffer),
+      format: originalFormat,
+      width: img.width,
+      height: img.height,
+    }
   }
 
   return {

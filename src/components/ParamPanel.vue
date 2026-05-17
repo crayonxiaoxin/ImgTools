@@ -1,10 +1,20 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useImageStore } from '@/stores/imageStore'
 import { getWritableFormats } from '@/core/formats'
 
 const store = useImageStore()
 const writableFormats = computed(() => getWritableFormats())
+
+const maxWidthEnabled = ref(false)
+const maxWidthValue = ref(1920)
+
+watch(() => store.images[0]?.config.maxWidth, (val) => {
+  if (val !== undefined) {
+    maxWidthEnabled.value = true
+    maxWidthValue.value = val
+  }
+})
 
 function updateGlobalConfig(field: string, value: any) {
   store.images.forEach(item => {
@@ -12,6 +22,18 @@ function updateGlobalConfig(field: string, value: any) {
       store.updateConfig(item.id, { [field]: value })
     }
   })
+}
+
+function toggleMaxWidth(enabled: boolean) {
+  maxWidthEnabled.value = enabled
+  updateGlobalConfig('maxWidth', enabled ? maxWidthValue.value : undefined)
+}
+
+function setMaxWidth(val: number) {
+  maxWidthValue.value = val
+  if (maxWidthEnabled.value) {
+    updateGlobalConfig('maxWidth', val)
+  }
 }
 </script>
 
@@ -49,18 +71,6 @@ function updateGlobalConfig(field: string, value: any) {
         />
       </div>
 
-      <div class="param-group">
-        <label class="param-label">输出格式</label>
-        <select
-          :value="store.images[0]?.config.targetFormat ?? 'webp'"
-          @change="updateGlobalConfig('targetFormat', ($event.target as HTMLSelectElement).value)"
-          class="select-input"
-        >
-          <option v-for="fmt in writableFormats" :key="fmt" :value="fmt">
-            {{ fmt.toUpperCase() }}
-          </option>
-        </select>
-      </div>
     </template>
 
     <!-- Convert mode -->
@@ -80,23 +90,23 @@ function updateGlobalConfig(field: string, value: any) {
     </template>
 
     <div class="param-group">
-      <label class="param-label">限制最大宽度</label>
       <div class="max-width-row">
         <input
           type="checkbox"
-          :checked="!!store.images[0]?.config.maxWidth"
-          @change="updateGlobalConfig('maxWidth', ($event.target as HTMLInputElement).checked ? 1920 : undefined)"
+          :checked="maxWidthEnabled"
+          @change="toggleMaxWidth(($event.target as HTMLInputElement).checked)"
         />
+        <label class="param-label" style="margin:0;cursor:pointer">限制最大宽度</label>
         <input
-          v-if="store.images[0]?.config.maxWidth"
+          v-if="maxWidthEnabled"
           type="number"
           min="100"
           max="10000"
-          :value="store.images[0]?.config.maxWidth"
-          @input="updateGlobalConfig('maxWidth', Number(($event.target as HTMLInputElement).value))"
+          :value="maxWidthValue"
+          @input="setMaxWidth(Number(($event.target as HTMLInputElement).value))"
           class="width-input"
         />
-        <span v-if="store.images[0]?.config.maxWidth" class="width-unit">px</span>
+        <span v-if="maxWidthEnabled" class="width-unit">px</span>
       </div>
     </div>
   </div>

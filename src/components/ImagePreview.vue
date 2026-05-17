@@ -26,7 +26,7 @@ const store = useImageStore()
             <p class="preview-name" :title="item.name">{{ item.name }}</p>
             <p class="preview-size">{{ formatSize(item.size) }}</p>
             <p v-if="item.format" class="preview-format">{{ item.format.toUpperCase() }}</p>
-            <p v-if="item.status === 'done' && item.resultSize" class="preview-result">
+            <p v-if="item.status === 'done' && item.resultSize" :class="item.resultSize <= item.size ? 'preview-result' : 'preview-larger'">
               处理后: {{ formatSize(item.resultSize) }}
               ({{ ((1 - item.resultSize / item.size) * 100).toFixed(0) }}%)
             </p>
@@ -89,6 +89,11 @@ const store = useImageStore()
 }
 .preview-result {
   color: #67c23a;
+  font-weight: 500;
+  margin: 2px 0;
+}
+.preview-larger {
+  color: #e6a23c;
   font-weight: 500;
   margin: 2px 0;
 }

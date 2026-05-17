@@ -69,7 +69,7 @@ function hasResults(): boolean {
             <td>{{ item.format?.toUpperCase() ?? '-' }}</td>
             <td>{{ item.resultSize ? formatSize(item.resultSize) : '-' }}</td>
             <td>
-              <span v-if="item.status === 'done' && item.resultSize" class="rate">
+              <span v-if="item.status === 'done' && item.resultSize" :class="item.resultSize <= item.size ? 'rate' : 'rate-negative'">
                 {{ ((1 - item.resultSize / item.size) * 100).toFixed(1) }}%
               </span>
               <span v-else>-</span>
@@ -168,6 +168,10 @@ function hasResults(): boolean {
 .status-tag.error { background: #fef0f0; color: #f56c6c; }
 .rate {
   color: #67c23a;
+  font-weight: 500;
+}
+.rate-negative {
+  color: #e6a23c;
   font-weight: 500;
 }
 </style>
