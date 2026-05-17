@@ -1,19 +1,26 @@
 # ImgTools
 
-> 纯浏览器端图片处理工具 — 压缩 & 格式转换，无需上传服务器。
+> 纯浏览器端图片处理工具 — 所有处理在本地完成，文件不上传服务器。
 
 ![wasm-vips](https://img.shields.io/badge/engine-wasm--vips-blue)
 ![Vue 3](https://img.shields.io/badge/Vue-3-4FC08D)
+![PWA](https://img.shields.io/badge/PWA-ready-purple)
+![License](https://img.shields.io/badge/license-MIT-green)
 
-![screenshot](screenshot.png)
+<p align="center">
+  <img src="screenshot.png" alt="ImgTools 截图" width="720">
+</p>
 
 ## 功能
 
-- **图片压缩** — JPEG/PNG/WebP/AVIF/TIFF 有损/无损压缩，质量可调
-- **格式转换** — JPEG/PNG/WebP/AVIF/BMP/TIFF 互转
-- **批量处理** — 多图同时处理，ZIP 打包下载或逐个下载
-- **自动降质** — 确保压缩后文件真正变小
-- **隐私安全** — 所有处理在浏览器本地完成，文件不上传
+| | 特性 | 说明 |
+|---|------|------|
+| 🔒 | **隐私安全** | 基于 wasm-vips 引擎，所有计算在浏览器内执行，图片不会离开你的设备 |
+| 📦 | **图片压缩** | JPEG / PNG / WebP / AVIF / TIFF，有损/无损可调 |
+| ⭐ | **Favicon 制作** | 自由裁剪 → 多尺寸输出，支持 PNG / ICO / ZIP 打包 |
+| 🔄 | **格式转换** | 支持 6 种输出格式，一键互转 |
+| 📋 | **批量处理** | 拖拽多图，统一处理，ZIP 打包下载 |
+| 🌙 | **跨平台** | 暗黑模式 · 多语言 · PWA 离线可用 · 响应式设计 |
 
 ## 快速开始
 
@@ -24,7 +31,7 @@ npm run dev
 
 打开 http://localhost:5173 即可使用。
 
-## 构建
+### 构建
 
 ```bash
 npm run build     # 类型检查 + 生产构建
@@ -35,24 +42,20 @@ npx vite build    # 仅构建（跳过类型检查）
 
 本项目可部署到任何静态托管服务：
 
-### Vercel
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new)
-
-或使用 CLI：
-
-```bash
-npx vercel --prod
-```
+- **Vercel** — [一键部署](https://vercel.com/new) 或 `npx vercel --prod`
 
 > ⚠️ 务必保留 COOP/COEP 头（配置见 `vercel.json`），否则 wasm-vips 无法运行。
 
-## 技术原理
+## 技术栈
 
-- **图像引擎**: [wasm-vips](https://github.com/kleisauke/wasm-vips) — libvips 的 WebAssembly 移植
-- **编码方式**: libvips 内联格式字符串，如 `.jpg[Q=80,optimize_coding=true]`
-- **跨域隔离**: 需要 `Cross-Origin-Opener-Policy: same-origin` + `Cross-Origin-Embedder-Policy: require-corp`
-- **WASM 大小**: ~5 MB（首次加载后浏览器缓存）
+| | |
+|---|---|
+| **图像引擎** | [wasm-vips](https://github.com/kleisauke/wasm-vips) — libvips 的 WebAssembly 移植 |
+| **前端框架** | Vue 3 + TypeScript + Vite |
+| **状态管理** | Pinia |
+| **PWA** | vite-plugin-pwa，预缓存 ~6MB 资源 |
+| **多语言** | vue-i18n · 简体中文 / 繁體中文 / English |
+| **路由** | vue-router（History 模式） |
 
 ## 项目结构
 
