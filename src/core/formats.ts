@@ -13,7 +13,7 @@ export interface FormatInfo {
 
 export const FORMATS: Record<ImageFormat, FormatInfo> = {
   jpeg: { format: 'jpeg', label: 'JPEG', extensions: ['.jpg', '.jpeg', '.jpe'], mime: 'image/jpeg', readable: true, writable: true, lossyCompress: true, losslessCompress: false },
-  png:  { format: 'png',  label: 'PNG',  extensions: ['.png'],           mime: 'image/png',  readable: true, writable: true, lossyCompress: false, losslessCompress: true },
+  png:  { format: 'png',  label: 'PNG',  extensions: ['.png'],           mime: 'image/png',  readable: true, writable: true, lossyCompress: true, losslessCompress: true },
   webp: { format: 'webp', label: 'WebP', extensions: ['.webp'],          mime: 'image/webp', readable: true, writable: true, lossyCompress: true,  losslessCompress: true },
   avif: { format: 'avif', label: 'AVIF', extensions: ['.avif'],          mime: 'image/avif', readable: true, writable: true, lossyCompress: true,  losslessCompress: true },
   gif:  { format: 'gif',  label: 'GIF',  extensions: ['.gif'],           mime: 'image/gif',  readable: true, writable: false, lossyCompress: false, losslessCompress: false },

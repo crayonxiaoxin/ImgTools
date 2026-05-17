@@ -14,19 +14,49 @@ export interface VipsEncodeOptions {
 
 export function buildEncodeOptions(options: CompressOptions, _originalFormat: ImageFormat): VipsEncodeOptions {
   const { quality, lossless, targetFormat } = options
-  let format: string
+  let format: string = targetFormat
   let encodeOptions: Record<string, any> = {}
 
+  // Lossless JPEG isn't possible — fallback to PNG
   if (lossless && targetFormat === 'jpeg') {
     format = 'png'
-    encodeOptions.Q = quality
-  } else if (lossless) {
-    format = targetFormat
-    encodeOptions.lossless = true
-    encodeOptions.Q = quality
-  } else {
-    format = targetFormat
-    encodeOptions.Q = quality
+  }
+
+  switch (format) {
+    case 'png':
+      if (lossless) {
+        encodeOptions.compression = 9
+      } else {
+        // Lossy PNG via palette quantization
+        encodeOptions.palette = true
+        encodeOptions.Q = quality
+        encodeOptions.compression = 9
+        encodeOptions.dither = 1.0
+      }
+      break
+    case 'jpeg':
+      encodeOptions.Q = quality
+      encodeOptions.optimize_coding = true
+      break
+    case 'webp':
+      if (lossless) {
+        encodeOptions.lossless = true
+      }
+      encodeOptions.Q = quality
+      break
+    case 'avif':
+      if (lossless) {
+        encodeOptions.lossless = true
+      }
+      encodeOptions.Q = quality
+      break
+    case 'tiff':
+      encodeOptions.compression = lossless ? 'deflate' : 'jpeg'
+      encodeOptions.Q = quality
+      break
+    case 'bmp':
+      // BMP is uncompressed, no options needed
+      break
   }
 
   return { format, options: encodeOptions }

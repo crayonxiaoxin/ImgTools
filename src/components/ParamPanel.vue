@@ -1,10 +1,56 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useImageStore } from '@/stores/imageStore'
-import { getWritableFormats } from '@/core/formats'
+import { getWritableFormats, FORMATS } from '@/core/formats'
 
 const store = useImageStore()
 const writableFormats = computed(() => getWritableFormats())
+
+const currentFormat = computed(() => {
+  const fmt = store.images[0]?.config.targetFormat
+  return fmt ? FORMATS[fmt] : null
+})
+
+const lossySupported = computed(() => currentFormat.value?.lossyCompress ?? false)
+
+const qualityVisible = computed(() => {
+  const fmt = outputFormat.value
+  const lossless = store.images[0]?.config.lossless
+  if (lossless && fmt === 'png') return false
+  if (lossless && fmt === 'bmp') return false
+  return true
+})
+
+const outputFormat = ref<string | null>(null)
+
+watch(() => store.images[0]?.format, (fmt) => {
+  if (outputFormat.value === null && fmt) {
+    syncOriginalFormat()
+  }
+})
+
+function syncOriginalFormat() {
+  store.images.forEach(item => {
+    if (item.format && item.status !== 'processing') {
+      store.updateConfig(item.id, { targetFormat: item.format })
+    }
+  })
+}
+
+function setOutputFormat(fmt: string | null) {
+  outputFormat.value = fmt
+  if (fmt === null) {
+    syncOriginalFormat()
+  } else {
+    updateGlobalConfig('targetFormat', fmt as any)
+  }
+}
+
+watch(currentFormat, (fmt) => {
+  if (fmt && !fmt.lossyCompress && store.images[0]?.config.lossless === false) {
+    updateGlobalConfig('lossless', true)
+  }
+})
 
 const maxWidthEnabled = ref(false)
 const maxWidthValue = ref(1920)
@@ -49,17 +95,18 @@ function setMaxWidth(val: number) {
           <button
             class="toggle-btn"
             :class="{ active: !store.images[0]?.config.lossless }"
+            :disabled="!lossySupported"
             @click="updateGlobalConfig('lossless', false)"
           >有损</button>
           <button
             class="toggle-btn"
-            :class="{ active: store.images[0]?.config.lossless }"
+            :class="{ active: store.images[0]?.config.lossless || !lossySupported }"
             @click="updateGlobalConfig('lossless', true)"
           >无损</button>
         </div>
       </div>
 
-      <div class="param-group">
+      <div class="param-group" v-if="qualityVisible">
         <label class="param-label">质量: {{ store.images[0]?.config.quality ?? 80 }}</label>
         <input
           type="range"
@@ -71,6 +118,19 @@ function setMaxWidth(val: number) {
         />
       </div>
 
+      <div class="param-group">
+        <label class="param-label">输出格式</label>
+        <select
+          :value="outputFormat ?? '__original__'"
+          @change="setOutputFormat(($event.target as HTMLSelectElement).value === '__original__' ? null : ($event.target as HTMLSelectElement).value)"
+          class="select-input"
+        >
+          <option value="__original__">按原格式输出</option>
+          <option v-for="fmt in writableFormats" :key="fmt" :value="fmt">
+            {{ fmt.toUpperCase() }}
+          </option>
+        </select>
+      </div>
     </template>
 
     <!-- Convert mode -->
@@ -153,6 +213,10 @@ function setMaxWidth(val: number) {
   color: #409eff;
   font-weight: 600;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.toggle-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 .range-input {
   width: 100%;
