@@ -4,6 +4,7 @@ import { fileURLToPath, URL } from 'node:url'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  base: process.env.GITHUB_PAGES ? '/img-tools/' : '/',
   plugins: [
     vue(),
     VitePWA({

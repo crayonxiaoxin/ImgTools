@@ -54,6 +54,12 @@ npx vercel --prod
 - **跨域隔离**: 需要 `Cross-Origin-Opener-Policy: same-origin` + `Cross-Origin-Embedder-Policy: require-corp`
 - **WASM 大小**: ~5 MB（首次加载后浏览器缓存）
 
+### GitHub Pages
+
+推送到 `main` 分支自动触发构建部署。
+
+> ⚠️ GitHub Pages 不支持自定义 HTTP 头，COOP/COEP 无法设置，因此 wasm-vips **在 GitHub Pages 上无法正常工作**。建议使用 Vercel 部署（完整支持 COOP/COEP）。
+
 ## 项目结构
 
 ```
