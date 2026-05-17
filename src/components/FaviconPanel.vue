@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useImageStore } from '@/stores/imageStore'
 import { FAVICON_SIZES } from '@/core/formats'
 import { initVips } from '@/core/vips'
@@ -8,9 +8,12 @@ import { formatSize } from '@/utils/format'
 import JSZip from 'jszip'
 
 const store = useImageStore()
+const pickerRef = ref<HTMLInputElement>()
 const dragging = ref(false)
-const icoUrl = ref<string>()
+
 const selectedSizes = ref<number[]>([16, 32, 48, 64])
+const icoUrl = ref<string>()
+const isProcessing = ref(false)
 
 function toggleSize(s: number) {
   const i = selectedSizes.value.indexOf(s)
@@ -21,22 +24,123 @@ function toggleSize(s: number) {
 const hasImage = computed(() => store.images.length > 0)
 const current = computed(() => store.images[0])
 
-// drag / drop
+// ── file pick (drop zone + click anywhere) ──
+function openPicker() {
+  pickerRef.value?.click()
+}
+
+function onFilePick(e: Event) {
+  const input = e.target as HTMLInputElement
+  if (input.files?.length) {
+    store.clearAll()
+    store.addImages(Array.from(input.files))
+    initCrop()
+    input.value = ''
+  }
+}
+
 function onDrop(e: DragEvent) {
   e.preventDefault()
   dragging.value = false
-  if (e.dataTransfer?.files.length) store.addImages(Array.from(e.dataTransfer.files))
-}
-function onPick(e: Event) {
-  const input = e.target as HTMLInputElement
-  if (input.files?.length) store.addImages(Array.from(input.files))
-  input.value = ''
+  if (e.dataTransfer?.files.length) {
+    store.clearAll()
+    store.addImages(Array.from(e.dataTransfer.files))
+    initCrop()
+  }
 }
 
-// generate
+// ── crop state ──
+const cropContainer = ref<HTMLDivElement>()
+const cropLeft = ref(0)
+const cropTop = ref(0)
+const cropSize = ref(0)
+const containerSize = 280
+const imageScale = ref(1)        // display px per image px
+const imageDisplayW = ref(0)
+const imageDisplayH = ref(0)
+
+let isDraggingBox = false
+let dragStartX = 0
+let dragStartY = 0
+let dragOrigLeft = 0
+let dragOrigTop = 0
+
+let isResizing = false
+let resizeStartX = 0
+let resizeStartY = 0
+let resizeOrigSize = 0
+
+function initCrop() {
+  if (!current.value?.previewUrl) return
+  const img = new Image()
+  img.onload = () => {
+    const iw = img.naturalWidth
+    const ih = img.naturalHeight
+    const scale = Math.min(containerSize / iw, containerSize / ih)
+    imageScale.value = scale
+    imageDisplayW.value = iw * scale
+    imageDisplayH.value = ih * scale
+    const dim = Math.min(imageDisplayW.value, imageDisplayH.value)
+    cropSize.value = dim
+    cropLeft.value = (imageDisplayW.value - dim) / 2
+    cropTop.value = (imageDisplayH.value - dim) / 2
+  }
+  img.src = current.value.previewUrl
+}
+
+// drag crop box
+function onBoxDown(e: MouseEvent) {
+  isDraggingBox = true
+  dragStartX = e.clientX
+  dragStartY = e.clientY
+  dragOrigLeft = cropLeft.value
+  dragOrigTop = cropTop.value
+}
+
+function onPointerMove(e: MouseEvent) {
+  if (isDraggingBox) {
+    let nx = dragOrigLeft + (e.clientX - dragStartX)
+    let ny = dragOrigTop + (e.clientY - dragStartY)
+    const dim = cropSize.value
+    nx = Math.max(0, Math.min(nx, imageDisplayW.value - dim))
+    ny = Math.max(0, Math.min(ny, imageDisplayH.value - dim))
+    cropLeft.value = nx
+    cropTop.value = ny
+  }
+  if (isResizing) {
+    const d = Math.max(20, resizeOrigSize + (e.clientX - resizeStartX))
+    const max = Math.min(imageDisplayW.value - cropLeft.value, imageDisplayH.value - cropTop.value)
+    cropSize.value = Math.min(d, max)
+  }
+}
+
+function onPointerUp() {
+  isDraggingBox = false
+  isResizing = false
+}
+
+function onResizeDown(e: MouseEvent) {
+  e.stopPropagation()
+  isResizing = true
+  resizeStartX = e.clientX
+  resizeStartY = e.clientY
+  resizeOrigSize = cropSize.value
+}
+
+onMounted(() => {
+  document.addEventListener('mousemove', onPointerMove)
+  document.addEventListener('mouseup', onPointerUp)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('mousemove', onPointerMove)
+  document.removeEventListener('mouseup', onPointerUp)
+})
+
+// ── generate favicons using crop data ──
 async function generate() {
   if (!current.value || selectedSizes.value.length === 0) return
-  store.setProcessing(true)
+  isProcessing.value = true
   icoUrl.value = undefined
 
   const item = current.value
@@ -46,22 +150,23 @@ async function generate() {
     const buffer = await item.file.arrayBuffer()
     const img = v.Image.newFromBuffer(new Uint8Array(buffer))
 
-    const dim = Math.min(img.width, img.height)
-    const left = Math.round((img.width - dim) / 2)
-    const top = Math.round((img.height - dim) / 2)
-    const cropped = img.crop(left, top, dim, dim)
+    // crop coordinates in image pixels
+    const s = imageScale.value
+    const cx = Math.round(cropLeft.value / s)
+    const cy = Math.round(cropTop.value / s)
+    const cw = Math.round(cropSize.value / s)
+    const cropped = img.crop(cx, cy, cw, cw)
 
     const sizes = selectedSizes.value
     const pngData: Uint8Array[] = []
     const results: { url: string; size: number }[] = []
 
-    for (const s of sizes) {
-      const scaled = cropped.resize(s / dim)
+    for (const sz of sizes) {
+      const scaled = cropped.resize(sz / cw)
       const data = scaled.pngsaveBuffer()
       pngData.push(data)
       const blob = new Blob([data], { type: 'image/png' })
-      const url = URL.createObjectURL(blob)
-      results.push({ url, size: s })
+      results.push({ url: URL.createObjectURL(blob), size: sz })
     }
     store.setFaviconResults(item.id, results)
 
@@ -71,7 +176,7 @@ async function generate() {
   } catch (e: unknown) {
     store.setError(item.id, e instanceof Error ? e.message : String(e))
   }
-  store.setProcessing(false)
+  isProcessing.value = false
 }
 
 function downloadIco() {
@@ -87,8 +192,7 @@ async function downloadZip() {
   const zip = new JSZip()
   const base = current.value.name.replace(/\.[^.]+$/, '')
   for (const r of current.value.faviconResults) {
-    const resp = await fetch(r.url)
-    zip.file(`${base}-${r.size}x${r.size}.png`, await resp.blob())
+    zip.file(`${base}-${r.size}x${r.size}.png`, await fetch(r.url).then(r => r.blob()))
   }
   if (icoUrl.value) {
     zip.file('favicon.ico', await fetch(icoUrl.value).then(r => r.blob()))
@@ -105,7 +209,9 @@ async function downloadZip() {
 
 <template>
   <div class="favicon-page">
-    <!-- Drop zone (hero area) -->
+    <input ref="pickerRef" type="file" accept="image/*" style="display:none" @change="onFilePick" />
+
+    <!-- Drop zone -->
     <div
       v-if="!hasImage"
       class="drop-hero"
@@ -113,6 +219,7 @@ async function downloadZip() {
       @dragover.prevent="dragging = true"
       @dragleave="dragging = false"
       @drop="onDrop"
+      @click="openPicker"
     >
       <div class="drop-icon">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -123,20 +230,52 @@ async function downloadZip() {
       </div>
       <p class="drop-title">上传图片制作图标</p>
       <p class="drop-hint">支持 JPEG / PNG / WebP / AVIF 格式</p>
-      <button class="pick-btn" @click="($refs.picker as HTMLInputElement).click()">选择文件</button>
-      <input ref="picker" type="file" accept="image/*" style="display:none" @change="onPick" />
+      <p class="drop-sub">点击或拖拽上传</p>
     </div>
 
     <!-- Work area -->
     <template v-if="hasImage && current">
       <div class="work-area">
-        <!-- Left: preview -->
-        <div class="preview-col">
-          <div class="preview-card">
-            <img v-if="current.previewUrl" :src="current.previewUrl" class="preview-img" />
+        <!-- Left: crop -->
+        <div class="crop-col">
+          <div class="crop-toolbar">
+            <span class="crop-label">裁剪区域</span>
+            <span class="re-pick" @click="openPicker">重新选择</span>
           </div>
-          <p class="current-name">{{ current.name }}</p>
-          <p v-if="current.format" class="current-meta">{{ current.format.toUpperCase() }} · {{ formatSize(current.size) }}</p>
+          <div
+            ref="cropContainer"
+            class="crop-container"
+            :style="{
+              width: containerSize + 'px',
+              height: containerSize + 'px',
+            }"
+          >
+            <img
+              v-if="current.previewUrl"
+              :src="current.previewUrl"
+              class="crop-image"
+              :style="{
+                width: imageDisplayW + 'px',
+                height: imageDisplayH + 'px',
+                left: (containerSize - imageDisplayW) / 2 + 'px',
+                top: (containerSize - imageDisplayH) / 2 + 'px',
+              }"
+            />
+            <!-- dim overlay -->
+            <div
+              class="crop-box"
+              :style="{
+                left: cropLeft + 'px',
+                top: cropTop + 'px',
+                width: cropSize + 'px',
+                height: cropSize + 'px',
+              }"
+              @mousedown="onBoxDown"
+            >
+              <div class="crop-handle" @mousedown="onResizeDown"></div>
+            </div>
+          </div>
+          <p class="crop-hint">拖拽方框移动 · 拖拽右下角调整大小</p>
         </div>
 
         <!-- Right: controls -->
@@ -149,20 +288,17 @@ async function downloadZip() {
               class="size-chip"
               :class="{ active: selectedSizes.includes(s) }"
               @click="toggleSize(s)"
-            >
-              <span class="size-val">{{ s }}×{{ s }}</span>
-              <span class="size-dot" :style="{ width: Math.min(s / 256 * 24, 24) + 'px', height: Math.min(s / 256 * 24, 24) + 'px' }"></span>
-            </button>
+            >{{ s }}×{{ s }}</button>
           </div>
           <p class="size-hint">已选 {{ selectedSizes.length }} 个尺寸</p>
 
           <button
             class="gen-btn"
-            :disabled="store.processing || selectedSizes.length === 0"
+            :disabled="isProcessing || selectedSizes.length === 0"
             @click="generate"
           >
-            <span v-if="store.processing" class="spinner"></span>
-            {{ store.processing ? '生成中…' : '生成图标' }}
+            <span v-if="isProcessing" class="spinner"></span>
+            {{ isProcessing ? '生成中…' : '生成图标' }}
           </button>
         </div>
       </div>
@@ -172,11 +308,11 @@ async function downloadZip() {
         <div class="results-header">
           <h3 class="section-title">预览</h3>
           <div class="results-actions">
-            <button class="action-btn ico-btn" :disabled="!icoUrl" @click="downloadIco">
+            <button class="action-btn" :disabled="!icoUrl" @click="downloadIco">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               下载 .ICO
             </button>
-            <button class="action-btn zip-btn" @click="downloadZip">
+            <button class="action-btn" @click="downloadZip">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               下载 ZIP
             </button>
@@ -189,9 +325,7 @@ async function downloadZip() {
             </div>
             <div class="result-info">
               <span class="result-size">{{ r.size }}×{{ r.size }}</span>
-              <span class="result-download">
-                <a :href="r.url" :download="`favicon-${r.size}x${r.size}.png`">下载</a>
-              </span>
+              <a :href="r.url" :download="`favicon-${r.size}x${r.size}.png`" class="result-dl">下载</a>
             </div>
           </div>
         </div>
@@ -217,141 +351,89 @@ async function downloadZip() {
   transition: all 0.25s;
   background: #fafbfc;
 }
-.drop-hero:hover,
-.drop-hero.dragging {
+.drop-hero:hover, .drop-hero.dragging {
   border-color: #409eff;
   background: #f0f7ff;
 }
-.drop-icon {
-  color: #98a2b3;
-  margin-bottom: 12px;
-}
+.drop-icon { color: #98a2b3; margin-bottom: 12px; }
 .drop-hero:hover .drop-icon,
-.drop-hero.dragging .drop-icon {
-  color: #409eff;
-}
-.drop-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #1d2939;
-  margin-bottom: 4px;
-}
-.drop-hint {
-  font-size: 13px;
-  color: #98a2b3;
-  margin-bottom: 20px;
-}
-.pick-btn {
-  display: inline-block;
-  padding: 8px 24px;
-  border: 1px solid #d0d5dd;
-  border-radius: 8px;
-  background: #fff;
-  font-size: 14px;
-  color: #344054;
-  cursor: pointer;
-}
-.pick-btn:hover {
-  background: #f9fafb;
-}
+.drop-hero.dragging .drop-icon { color: #409eff; }
+.drop-title { font-size: 16px; font-weight: 600; color: #1d2939; margin-bottom: 4px; }
+.drop-hint { font-size: 13px; color: #98a2b3; }
+.drop-sub { font-size: 12px; color: #b0b7c3; margin-top: 12px; }
 
 /* ── work area ── */
 .work-area {
   display: flex;
   gap: 32px;
   align-items: flex-start;
-  margin-bottom: 32px;
 }
-.preview-col {
-  flex-shrink: 0;
-  width: 200px;
-  text-align: center;
+
+/* ── crop ── */
+.crop-col { flex-shrink: 0; }
+.crop-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
 }
-.preview-card {
-  width: 200px;
-  height: 200px;
+.crop-label { font-size: 14px; font-weight: 600; color: #1d2939; }
+.re-pick { font-size: 12px; color: #409eff; cursor: pointer; }
+.re-pick:hover { text-decoration: underline; }
+.crop-container {
+  position: relative;
+  background: #f0f0f0;
   border-radius: 16px;
   overflow: hidden;
-  background: #f0f0f0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   border: 1px solid #e4e7ec;
-  margin-bottom: 8px;
+  user-select: none;
 }
-.preview-img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
+.crop-image {
+  position: absolute;
+  display: block;
 }
-.current-name {
-  font-size: 13px;
-  color: #1d2939;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.crop-box {
+  position: absolute;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 9999px rgba(0,0,0,0.45);
+  cursor: move;
+  z-index: 2;
 }
-.current-meta {
-  font-size: 11px;
-  color: #98a2b3;
+.crop-handle {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  width: 14px;
+  height: 14px;
+  background: #fff;
+  border: 2px solid #409eff;
+  border-radius: 3px;
+  cursor: nwse-resize;
+  z-index: 3;
 }
+.crop-hint { font-size: 11px; color: #98a2b3; margin-top: 6px; text-align: center; }
 
-.controls-col {
-  flex: 1;
-  min-width: 0;
-}
-.section-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #1d2939;
-  margin-bottom: 12px;
-}
-
-.size-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 8px;
-}
+/* ── controls ── */
+.controls-col { flex: 1; min-width: 0; }
+.section-title { font-size: 14px; font-weight: 600; color: #1d2939; margin-bottom: 12px; }
+.size-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
 .size-chip {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
+  padding: 8px 14px;
   border: 1px solid #e4e7ec;
   border-radius: 10px;
   background: #fff;
   cursor: pointer;
-  transition: all 0.15s;
   font-size: 13px;
   color: #344054;
-  min-width: 80px;
+  transition: all 0.15s;
 }
-.size-chip:hover {
-  border-color: #b0b7c3;
-}
+.size-chip:hover { border-color: #b0b7c3; }
 .size-chip.active {
   border-color: #409eff;
   background: #eff6ff;
   color: #2563eb;
 }
-.size-val {
-  font-weight: 500;
-}
-.size-dot {
-  display: inline-block;
-  border-radius: 2px;
-  background: currentColor;
-  opacity: 0.4;
-}
-.size-chip.active .size-dot {
-  opacity: 1;
-}
-.size-hint {
-  font-size: 12px;
-  color: #98a2b3;
-  margin-bottom: 16px;
-}
+.size-hint { font-size: 12px; color: #98a2b3; margin-bottom: 16px; }
 
 .gen-btn {
   display: inline-flex;
@@ -366,16 +448,10 @@ async function downloadZip() {
   font-weight: 500;
   cursor: pointer;
 }
-.gen-btn:hover:not(:disabled) {
-  background: #2d7ee0;
-}
-.gen-btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
+.gen-btn:hover:not(:disabled) { background: #2d7ee0; }
+.gen-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .spinner {
-  width: 14px;
-  height: 14px;
+  width: 14px; height: 14px;
   border: 2px solid rgba(255,255,255,0.5);
   border-top-color: #fff;
   border-radius: 50%;
@@ -384,20 +460,14 @@ async function downloadZip() {
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ── results ── */
-.results-area {
-  border-top: 1px solid #e4e7ec;
-  padding-top: 24px;
-}
+.results-area { border-top: 1px solid #e4e7ec; padding-top: 24px; margin-top: 32px; }
 .results-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
 }
-.results-actions {
-  display: flex;
-  gap: 8px;
-}
+.results-actions { display: flex; gap: 8px; }
 .action-btn {
   display: inline-flex;
   align-items: center;
@@ -410,18 +480,9 @@ async function downloadZip() {
   cursor: pointer;
   color: #344054;
 }
-.action-btn:hover:not(:disabled) {
-  background: #f9fafb;
-}
-.action-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-.results-grid {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
+.action-btn:hover:not(:disabled) { background: #f9fafb; }
+.action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.results-grid { display: flex; gap: 12px; flex-wrap: wrap; }
 .result-card {
   border: 1px solid #e4e7ec;
   border-radius: 12px;
@@ -436,10 +497,7 @@ async function downloadZip() {
   justify-content: center;
   background: #fafbfc;
 }
-.result-preview img {
-  display: block;
-  image-rendering: pixelated;
-}
+.result-preview img { display: block; image-rendering: pixelated; }
 .result-info {
   display: flex;
   justify-content: space-between;
@@ -447,26 +505,12 @@ async function downloadZip() {
   padding: 6px 10px;
   border-top: 1px solid #f0f0f0;
 }
-.result-size {
-  font-size: 12px;
-  color: #667085;
-}
-.result-download a {
-  font-size: 12px;
-  color: #409eff;
-  text-decoration: none;
-}
-.result-download a:hover {
-  text-decoration: underline;
-}
+.result-size { font-size: 12px; color: #667085; }
+.result-dl { font-size: 12px; color: #409eff; text-decoration: none; }
+.result-dl:hover { text-decoration: underline; }
 
 @media (max-width: 640px) {
-  .work-area {
-    flex-direction: column;
-    align-items: center;
-  }
-  .controls-col {
-    width: 100%;
-  }
+  .work-area { flex-direction: column; align-items: center; }
+  .controls-col { width: 100%; }
 }
 </style>
