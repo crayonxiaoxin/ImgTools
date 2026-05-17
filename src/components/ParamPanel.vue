@@ -48,6 +48,19 @@ function updateGlobalConfig(field: string, value: any) {
           class="range-input"
         />
       </div>
+
+      <div class="param-group">
+        <label class="param-label">输出格式</label>
+        <select
+          :value="store.images[0]?.config.targetFormat ?? 'webp'"
+          @change="updateGlobalConfig('targetFormat', ($event.target as HTMLSelectElement).value)"
+          class="select-input"
+        >
+          <option v-for="fmt in writableFormats" :key="fmt" :value="fmt">
+            {{ fmt.toUpperCase() }}
+          </option>
+        </select>
+      </div>
     </template>
 
     <!-- Convert mode -->
@@ -66,29 +79,25 @@ function updateGlobalConfig(field: string, value: any) {
       </div>
     </template>
 
-    <!-- Common params -->
     <div class="param-group">
-      <label class="param-label">输出格式</label>
-      <select
-        :value="store.images[0]?.config.targetFormat ?? 'webp'"
-        @change="updateGlobalConfig('targetFormat', ($event.target as HTMLSelectElement).value)"
-        class="select-input"
-      >
-        <option v-for="fmt in writableFormats" :key="fmt" :value="fmt">
-          {{ fmt.toUpperCase() }}
-        </option>
-      </select>
-    </div>
-
-    <div class="param-group">
-      <label class="param-label">
+      <label class="param-label">限制最大宽度</label>
+      <div class="max-width-row">
         <input
           type="checkbox"
           :checked="!!store.images[0]?.config.maxWidth"
           @change="updateGlobalConfig('maxWidth', ($event.target as HTMLInputElement).checked ? 1920 : undefined)"
         />
-        限制最大宽度
-      </label>
+        <input
+          v-if="store.images[0]?.config.maxWidth"
+          type="number"
+          min="100"
+          max="10000"
+          :value="store.images[0]?.config.maxWidth"
+          @input="updateGlobalConfig('maxWidth', Number(($event.target as HTMLInputElement).value))"
+          class="width-input"
+        />
+        <span v-if="store.images[0]?.config.maxWidth" class="width-unit">px</span>
+      </div>
     </div>
   </div>
 </template>
@@ -165,5 +174,21 @@ function updateGlobalConfig(field: string, value: any) {
   border-radius: 4px;
   font-size: 13px;
   background: #fff;
+}
+.max-width-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.width-input {
+  width: 80px;
+  padding: 4px 6px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 13px;
+}
+.width-unit {
+  font-size: 12px;
+  color: #999;
 }
 </style>
