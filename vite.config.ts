@@ -19,10 +19,15 @@ export default defineConfig({
         orientation: 'any',
         icons: [
           {
-            src: '/logo.svg',
-            sizes: '120x120',
-            type: 'image/svg+xml',
-            purpose: 'any',
+            src: '/icon-192x192.png',
+            sizes: '192x192',
+            type: 'image/png',
+          },
+          {
+            src: '/icon-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable',
           },
         ],
       },
