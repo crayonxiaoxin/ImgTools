@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { ImageFormat } from '@/core/formats'
-import { detectFormat } from '@/core/formats'
+import { detectFormat, FORMATS } from '@/core/formats'
 
 export interface ImageItem {
   id: string
@@ -69,7 +69,7 @@ export const useImageStore = defineStore('images', () => {
         config: {
           quality: 80,
           lossless: false,
-          targetFormat: (fmt ?? 'jpeg') as ImageFormat,
+          targetFormat: (fmt && FORMATS[fmt].writable ? fmt : 'png') as ImageFormat,
         },
       }
     })
@@ -146,7 +146,7 @@ export const useImageStore = defineStore('images', () => {
       item.config.lossless = false
       item.config.maxWidth = undefined
       if (mode === 'compress') {
-        item.config.targetFormat = item.format ?? 'jpeg'
+        item.config.targetFormat = (item.format && FORMATS[item.format].writable ? item.format : 'png')
       }
     })
   }

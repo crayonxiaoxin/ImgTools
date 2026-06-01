@@ -35,7 +35,7 @@ watch(() => store.images[0]?.format, (fmt) => {
 function syncOriginalFormat() {
   store.images.forEach(item => {
     if (item.format && item.status !== 'processing') {
-      store.updateConfig(item.id, { targetFormat: item.format })
+      store.updateConfig(item.id, { targetFormat: FORMATS[item.format].writable ? item.format : 'png' })
     }
   })
 }

@@ -10,6 +10,31 @@ export interface ProcessResult {
   height: number
 }
 
+async function renderSvgToRgba(buffer: ArrayBuffer, scale: number): Promise<{ data: Uint8Array; width: number; height: number }> {
+  const blob = new Blob([buffer], { type: 'image/svg+xml' })
+  const url = URL.createObjectURL(blob)
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image()
+      el.onload = () => resolve(el)
+      el.onerror = () => reject(new Error('Failed to load SVG'))
+      el.src = url
+    })
+    const width = Math.round(img.naturalWidth * scale)
+    const height = Math.round(img.naturalHeight * scale)
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    const ctx = canvas.getContext('2d')!
+    ctx.scale(scale, scale)
+    ctx.drawImage(img, 0, 0)
+    const imageData = ctx.getImageData(0, 0, width, height)
+    return { data: new Uint8Array(imageData.data.buffer), width, height }
+  } finally {
+    URL.revokeObjectURL(url)
+  }
+}
+
 export async function processImage(
   buffer: ArrayBuffer,
   originalFormat: ImageFormat,
@@ -18,7 +43,14 @@ export async function processImage(
   const v = await initVips()
   let image
   try {
-    image = v.Image.newFromBuffer(new Uint8Array(buffer))
+    if (originalFormat === 'svg') {
+      const scale = 2
+      const { data, width, height } = await renderSvgToRgba(buffer, scale)
+      image = v.Image.newFromMemory(data, width, height, 4, v.BandFormat.uchar)
+        .copy({ interpretation: v.Interpretation.srgb })
+    } else {
+      image = v.Image.newFromBuffer(new Uint8Array(buffer))
+    }
   } catch (e) {
     throw new Error(`Failed to decode image: ${e instanceof Error ? e.message : String(e)}`)
   }

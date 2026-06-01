@@ -28,7 +28,9 @@ export async function initVips(timeoutMs = 30000): Promise<VipsNamespace> {
     try {
       console.log('[vips] Importing wasm-vips module...')
       const result = await Promise.race([
-        import('wasm-vips').then(m => (m as any).default()),
+        import('wasm-vips').then(m => (m as any).default({
+          dynamicLibraries: ['vips-jxl.wasm', 'vips-heif.wasm', 'vips-resvg.wasm'],
+        })),
         timeoutPromise,
       ])
       console.log('[vips] WASM engine ready!')
