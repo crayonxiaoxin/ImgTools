@@ -1,6 +1,12 @@
 import { useImageStore, type ImageItem } from '@/stores/imageStore'
 import { processImage } from '@/core/pipeline'
 
+export interface ProcessAllSummary {
+  total: number
+  done: number
+  failed: number
+}
+
 export function useImageProcessor() {
   const store = useImageStore()
 
@@ -22,7 +28,7 @@ export function useImageProcessor() {
     }
   }
 
-  async function processAll(): Promise<void> {
+  async function processAll(): Promise<ProcessAllSummary> {
     store.setProcessing(true)
     try {
       for (const item of store.images) {
@@ -31,6 +37,9 @@ export function useImageProcessor() {
     } finally {
       store.setProcessing(false)
     }
+    const done = store.images.filter(i => i.status === 'done').length
+    const failed = store.images.filter(i => i.status === 'error').length
+    return { total: store.images.length, done, failed }
   }
 
   return { processSingle, processAll }

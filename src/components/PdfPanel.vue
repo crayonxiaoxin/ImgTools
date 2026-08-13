@@ -1,12 +1,18 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { processPdf, type PdfProcessOptions } from '@/core/pdf'
 import { formatSize } from '@/utils/format'
+import { useToast } from '@/composables/useToast'
 import JSZip from 'jszip'
+
+const { t } = useI18n()
+const toast = useToast()
 
 const file = ref<File>()
 const dragging = ref(false)
 const isProcessing = ref(false)
+const convertError = ref<string | null>(null)
 const results = ref<{ data: Uint8Array; pageIndex: number; width: number; height: number; url?: string }[]>([])
 const totalPages = ref(0)
 const pickerRef = ref<HTMLInputElement>()
@@ -26,6 +32,7 @@ function onFilePick(e: Event) {
   if (f) {
     file.value = f
     results.value = []
+    convertError.value = null
   }
   input.value = ''
 }
@@ -37,23 +44,26 @@ function onDrop(e: DragEvent) {
   if (f && f.type === 'application/pdf') {
     file.value = f
     results.value = []
+    convertError.value = null
   }
 }
 
 function removeFile() {
   file.value = undefined
   results.value = []
+  convertError.value = null
 }
 
 async function convert() {
   if (!file.value) return
   isProcessing.value = true
   results.value = []
+  convertError.value = null
 
   try {
     const buffer = await file.value.arrayBuffer()
     const opts: PdfProcessOptions = {
-      scale: scale.value,
+      scale: Number(scale.value),
       format: format.value,
       quality: quality.value,
       mode: mode.value,
@@ -67,8 +77,11 @@ async function convert() {
       const blob = new Blob([page.data as BlobPart], { type: `image/${format.value}` })
       results.value.push({ ...page, url: URL.createObjectURL(blob) })
     }
+    toast.success(t('pdf.convertDone', { n: results.value.length }))
   } catch (e: unknown) {
     console.error(e)
+    convertError.value = e instanceof Error ? e.message : String(e)
+    toast.error(t('pdf.convertFailed', { msg: convertError.value }))
   }
 
   isProcessing.value = false
@@ -122,9 +135,9 @@ function downloadSingle(index: number) {
           <line x1="15" y1="15" x2="12" y2="12"/>
         </svg>
       </div>
-      <p class="drop-title">上传 PDF 转换为图片</p>
-      <p class="drop-hint">支持任意页数 PDF → PNG / JPEG / WebP</p>
-      <p class="drop-sub">点击或拖拽上传</p>
+      <p class="drop-title">{{ t('pdf.dropTitle') }}</p>
+      <p class="drop-hint">{{ t('pdf.dropHint') }}</p>
+      <p class="drop-sub">{{ t('pdf.dropSub') }}</p>
     </div>
 
     <!-- Controls -->
@@ -139,15 +152,16 @@ function downloadSingle(index: number) {
             </div>
             <p class="file-name">{{ file.name }}</p>
             <p class="file-size">{{ formatSize(file.size) }}</p>
-            <span class="re-pick" @click="removeFile">重新选择</span>
+            <span class="re-pick" @click="removeFile">{{ t('pdf.repick') }}</span>
           </div>
         </div>
 
         <div class="controls-col">
-          <h3 class="section-title">输出设置</h3>
+          <div class="controls-panel">
+          <h3 class="section-title">{{ t('pdf.settings') }}</h3>
 
           <div class="param-row">
-            <label>输出格式</label>
+            <label>{{ t('pdf.outputFormat') }}</label>
             <select v-model="format" class="sel">
               <option value="png">PNG</option>
               <option value="jpeg">JPEG</option>
@@ -156,25 +170,25 @@ function downloadSingle(index: number) {
           </div>
 
           <div class="param-row">
-            <label>渲染精度</label>
+            <label>{{ t('pdf.scale') }}</label>
             <select v-model="scale" class="sel">
-              <option :value="1">1×（普通）</option>
-              <option :value="1.5">1.5×</option>
-              <option :value="2">2×（高清）</option>
-              <option :value="3">3×（超清）</option>
+              <option :value="1">{{ t('pdf.scale1x') }}</option>
+              <option :value="1.5">{{ t('pdf.scale15x') }}</option>
+              <option :value="2">{{ t('pdf.scale2x') }}</option>
+              <option :value="3">{{ t('pdf.scale3x') }}</option>
             </select>
           </div>
 
           <div class="param-row">
-            <label>输出模式</label>
+            <label>{{ t('pdf.outputMode') }}</label>
             <select v-model="mode" class="sel">
-              <option value="long">长图拼接</option>
-              <option value="pages">逐页输出</option>
+              <option value="long">{{ t('pdf.modeLong') }}</option>
+              <option value="pages">{{ t('pdf.modePages') }}</option>
             </select>
           </div>
 
           <div class="param-row">
-            <label>页面范围</label>
+            <label>{{ t('pdf.pageRange') }}</label>
             <div class="range-row">
               <input type="number" v-model.number="pageFrom" min="1" class="num" /> —
               <input type="number" v-model.number="pageTo" min="1" class="num" />
@@ -182,14 +196,16 @@ function downloadSingle(index: number) {
           </div>
 
           <div v-if="format !== 'png'" class="param-row">
-            <label>质量: {{ quality }}</label>
+            <label>{{ t('pdf.quality', { v: quality }) }}</label>
             <input type="range" v-model.number="quality" min="10" max="100" class="range" />
           </div>
 
           <button class="gen-btn" :disabled="isProcessing" @click="convert">
             <span v-if="isProcessing" class="spinner"></span>
-            {{ isProcessing ? '转换中…' : '转换' }}
+            {{ isProcessing ? t('pdf.converting') : t('pdf.convert') }}
           </button>
+          <p v-if="convertError" class="convert-error">{{ t('pdf.convertFailed', { msg: convertError }) }}</p>
+          </div>
         </div>
       </div>
 
@@ -197,11 +213,15 @@ function downloadSingle(index: number) {
       <div v-if="results.length > 0" class="results-area">
         <div class="results-header">
           <h3 class="section-title">
-            结果
-            <span class="result-count">{{ results.length }} {{ mode === 'long' ? '张' : '页' }} · 共 {{ totalPages }} 页</span>
+            {{ t('pdf.results') }}
+            <span class="result-count">
+              {{ mode === 'long'
+                ? t('pdf.resultCountImages', { n: results.length, total: totalPages })
+                : t('pdf.resultCountPages', { n: results.length, total: totalPages }) }}
+            </span>
           </h3>
           <div class="results-actions">
-            <button class="action-btn" @click="downloadAll">下载 ZIP</button>
+            <button class="action-btn" @click="downloadAll">{{ t('pdf.downloadZip') }}</button>
           </div>
         </div>
         <div class="results-grid">
@@ -210,8 +230,11 @@ function downloadSingle(index: number) {
               <img :src="r.url" />
             </div>
             <div class="result-info">
-              <span class="result-label">{{ mode === 'long' ? '长图' : `第 ${r.pageIndex} 页` }} · {{ r.width }}×{{ r.height }}</span>
-              <a class="result-dl" @click="downloadSingle(i)">下载</a>
+              <span class="result-label">
+                {{ mode === 'long' ? t('pdf.longImage') : t('pdf.pageLabel', { n: r.pageIndex }) }}
+                · {{ r.width }}×{{ r.height }}
+              </span>
+              <a class="result-dl" @click="downloadSingle(i)">{{ t('pdf.download') }}</a>
             </div>
           </div>
         </div>
@@ -221,83 +244,229 @@ function downloadSingle(index: number) {
 </template>
 
 <style scoped>
-.pdf-page { max-width: 720px; margin: 0 auto; padding: 24px 16px; }
-.drop-hero {
-  border: 2px dashed var(--drop-border); border-radius: 20px; padding: 64px 24px;
-  text-align: center; cursor: pointer; transition: all 0.25s; background: var(--drop-bg);
+.pdf-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--space-4) var(--space-3);
 }
-.drop-hero:hover, .drop-hero.dragging { border-color: var(--primary); background: var(--drop-hover-bg); }
-.drop-icon { color: var(--placeholder); margin-bottom: 12px; }
+.drop-hero {
+  border: 1px dashed var(--drop-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5) var(--space-4);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color var(--ease), background var(--ease), box-shadow var(--ease);
+  background: var(--drop-bg);
+}
+.drop-hero:hover, .drop-hero.dragging {
+  border-color: var(--primary);
+  background: var(--drop-hover-bg);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 20%, transparent);
+}
+.drop-icon { color: var(--placeholder); margin-bottom: var(--space-2); }
 .drop-hero:hover .drop-icon, .drop-hero.dragging .drop-icon { color: var(--primary); }
-.drop-title { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.drop-title { font-size: var(--font-title); font-weight: 600; letter-spacing: -0.02em; color: var(--text); margin-bottom: 4px; }
 .drop-hint { font-size: 13px; color: var(--placeholder); }
-.drop-sub { font-size: 12px; color: var(--chip-hover); margin-top: 12px; }
+.drop-sub { font-size: var(--font-caption); color: var(--chip-hover); margin-top: var(--space-2); }
 
-.work-area { display: flex; gap: 32px; align-items: flex-start; }
+.work-area { display: flex; gap: var(--space-5); align-items: flex-start; }
 .info-col { flex-shrink: 0; width: 180px; }
 .file-card {
-  text-align: center; padding: 20px; border: 1px solid var(--card-border);
-  border-radius: 12px; background: var(--bg-surface);
+  text-align: center;
+  padding: var(--space-4);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-soft);
 }
-.file-icon { color: var(--danger); margin-bottom: 8px; }
-.file-name { font-size: 13px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-icon { color: var(--danger); margin-bottom: var(--space-1); }
+.file-name {
+  font-size: 13px;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .file-size { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
-.re-pick { font-size: 12px; color: var(--primary); cursor: pointer; margin-top: 4px; display: inline-block; }
+.re-pick {
+  font-size: var(--font-caption);
+  color: var(--primary);
+  cursor: pointer;
+  margin-top: 4px;
+  display: inline-block;
+}
 
 .controls-col { flex: 1; min-width: 0; }
-.section-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 12px; }
-.param-row { margin-bottom: 14px; }
-.param-row label { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
+.controls-panel {
+  padding: var(--space-4);
+  background: var(--bg-surface);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-soft);
+}
+.section-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: var(--space-3);
+}
+.param-row { margin-bottom: var(--space-3); }
+.param-row label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
 .sel {
-  width: 100%; padding: 6px 8px; border: 1px solid var(--border-strong); border-radius: 6px;
-  background: var(--bg-surface); color: var(--text); font-size: 13px;
+  appearance: none;
+  width: 100%;
+  height: var(--control-h);
+  padding: 0 28px 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background:
+    var(--bg-surface)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")
+    no-repeat right 10px center;
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+  transition: border-color var(--ease);
 }
-.range-row { display: flex; align-items: center; gap: 6px; }
+.sel:hover, .sel:focus { border-color: var(--border-strong); }
+.range-row { display: flex; align-items: center; gap: var(--space-1); }
 .num {
-  width: 60px; padding: 5px 6px; border: 1px solid var(--border-strong); border-radius: 4px;
-  background: var(--bg-surface); color: var(--text); font-size: 13px; text-align: center;
+  width: 64px;
+  height: var(--control-h);
+  padding: 0 var(--space-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  color: var(--text);
+  font-size: 13px;
+  text-align: center;
+  outline: none;
 }
-.range { width: 100%; }
+.range { width: 100%; accent-color: var(--primary); }
 
 .gen-btn {
-  display: inline-flex; align-items: center; gap: 6px; padding: 10px 28px; border: none;
-  border-radius: 10px; background: var(--primary); color: var(--bg-surface);
-  font-size: 14px; font-weight: 500; cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0 var(--space-4);
+  height: 36px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--primary);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: background var(--ease);
 }
 .gen-btn:hover:not(:disabled) { background: var(--primary-hover); }
 .gen-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.convert-error {
+  margin-top: var(--space-2);
+  font-size: var(--font-caption);
+  color: var(--danger);
+  word-break: break-word;
+}
 .spinner {
-  width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.5);
-  border-top-color: var(--bg-surface); border-radius: 50%; animation: spin 0.6s linear infinite;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.5);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.results-area { border-top: 1px solid var(--card-border); padding-top: 24px; margin-top: 32px; }
-.results-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.result-count { font-weight: 400; font-size: 12px; color: var(--text-muted); margin-left: 8px; }
-.results-actions { display: flex; gap: 8px; }
-.action-btn {
-  display: inline-flex; align-items: center; gap: 5px; padding: 6px 14px;
-  border: 1px solid var(--border-strong); border-radius: 8px; background: var(--bg-surface);
-  font-size: 13px; cursor: pointer; color: var(--text-secondary);
+.results-area {
+  border-top: 1px solid var(--card-border);
+  padding-top: var(--space-4);
+  margin-top: var(--space-5);
 }
-.action-btn:hover:not(:disabled) { background: var(--bg-hover); }
-.results-grid { display: flex; gap: 12px; flex-wrap: wrap; }
+.results-area .section-title {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  color: var(--text);
+  margin-bottom: 0;
+}
+.results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+.result-count {
+  font-weight: 400;
+  font-size: var(--font-caption);
+  color: var(--text-muted);
+  margin-left: var(--space-1);
+}
+.results-actions { display: flex; gap: var(--space-1); }
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 var(--space-3);
+  height: var(--control-h);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: border-color var(--ease), background var(--ease), color var(--ease);
+}
+.action-btn:hover:not(:disabled) {
+  background: var(--bg-hover);
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+.results-grid { display: flex; gap: var(--space-2); flex-wrap: wrap; }
 .result-card {
-  border: 1px solid var(--card-border); border-radius: 12px; overflow: hidden;
-  background: var(--bg-surface); width: 240px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--bg-surface);
+  width: 240px;
+  box-shadow: var(--shadow-soft);
 }
 .result-preview {
-  height: 160px; display: flex; align-items: center; justify-content: center;
-  background: var(--card-bg); overflow: hidden;
+  height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--card-bg);
+  overflow: hidden;
 }
 .result-preview img { max-width: 100%; max-height: 100%; object-fit: contain; }
 .result-info {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 6px 10px; border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-1) var(--space-2);
+  border-top: 1px solid var(--border);
 }
 .result-label { font-size: 11px; color: var(--text-muted); }
-.result-dl { font-size: 12px; color: var(--primary); cursor: pointer; }
+.result-dl { font-size: var(--font-caption); color: var(--primary); cursor: pointer; }
 
-@media (max-width: 640px) { .work-area { flex-direction: column; align-items: center; } .controls-col { width: 100%; } }
+@media (max-width: 640px) {
+  .work-area { flex-direction: column; align-items: center; gap: var(--space-4); }
+  .controls-col { width: 100%; }
+  .info-col { width: 100%; }
+  .gen-btn { width: 100%; justify-content: center; }
+}
 </style>

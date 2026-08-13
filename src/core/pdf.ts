@@ -1,9 +1,28 @@
 import { initVips } from './vips'
 
+/**
+ * PDF.js 5.7+ uses Map.prototype.getOrInsertComputed (Chrome 140+).
+ * Polyfill for Safari / Firefox / older Chromium so PDF convert keeps working.
+ */
+function ensureMapPolyfills() {
+  const proto = Map.prototype as Map<unknown, unknown> & {
+    getOrInsertComputed?: (key: unknown, callbackFn: (key: unknown) => unknown) => unknown
+  }
+  if (typeof proto.getOrInsertComputed !== 'function') {
+    proto.getOrInsertComputed = function (key, callbackFn) {
+      if (this.has(key)) return this.get(key)
+      const value = callbackFn(key)
+      this.set(key, value)
+      return value
+    }
+  }
+}
+
 let pdfjs: any = null
 
 async function getPdfJs() {
   if (!pdfjs) {
+    ensureMapPolyfills()
     pdfjs = await import('pdfjs-dist')
     pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
   }
@@ -44,7 +63,8 @@ async function renderPages(
     const viewport = page.getViewport({ scale })
     const canvas = new OffscreenCanvas(viewport.width, viewport.height)
     const ctx = canvas.getContext('2d')!
-    await page.render({ canvasContext: ctx, viewport }).promise
+    // PDF.js 5.x: pass canvas:null when rendering via an explicit context (OffscreenCanvas)
+    await page.render({ canvasContext: ctx, canvas: null, viewport }).promise
     const imageData = ctx.getImageData(0, 0, viewport.width, viewport.height)
     results.push({ width: viewport.width, height: viewport.height, pixels: imageData.data })
     page.cleanup()

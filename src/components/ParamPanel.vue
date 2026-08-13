@@ -177,45 +177,60 @@ function setMaxWidth(val: number) {
 
 <style scoped>
 .param-panel {
-  padding: 16px;
+  height: 100%;
+  padding: var(--space-4);
+  background: var(--bg-surface);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-soft);
 }
 .panel-title {
   font-size: 13px;
   font-weight: 600;
-  margin-bottom: 16px;
+  letter-spacing: -0.01em;
+  margin-bottom: var(--space-4);
   color: var(--text);
 }
 .param-group {
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
+}
+.param-group:last-child {
+  margin-bottom: 0;
 }
 .param-label {
   display: block;
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-bottom: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 8px;
 }
 .toggle-group {
   display: flex;
-  gap: 4px;
+  gap: 2px;
   background: var(--bg-dim);
-  border-radius: 6px;
-  padding: 2px;
+  border-radius: var(--radius-sm);
+  padding: 3px;
 }
 .toggle-btn {
   flex: 1;
   border: none;
   background: transparent;
-  padding: 6px 12px;
+  padding: 0 var(--space-2);
+  min-height: 30px;
   border-radius: 4px;
   font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
   color: var(--text-secondary);
+  transition: background var(--ease), color var(--ease), box-shadow var(--ease);
 }
 .toggle-btn.active {
   background: var(--bg-surface);
-  color: var(--primary);
+  color: var(--text);
   font-weight: 600;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
 }
 .toggle-btn:disabled {
   opacity: 0.4;
@@ -224,55 +239,85 @@ function setMaxWidth(val: number) {
 .range-input {
   width: 100%;
   cursor: pointer;
+  accent-color: var(--primary);
 }
 .format-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 6px;
 }
 .format-btn {
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--border);
   background: var(--bg-surface);
-  padding: 4px 10px;
-  border-radius: 4px;
+  padding: 0 12px;
+  min-height: 30px;
+  border-radius: var(--radius-sm);
   font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
   color: var(--text-secondary);
+  transition: border-color var(--ease), color var(--ease), background var(--ease);
+}
+.format-btn:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
 }
 .format-btn.active {
-  border-color: var(--primary);
-  color: var(--primary);
+  border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
+  color: var(--primary-text);
   background: var(--primary-bg);
 }
-.select-input {
+.select-input,
+.width-input {
+  appearance: none;
   width: 100%;
-  padding: 6px 8px;
-  border: 1px solid var(--border-strong);
-  border-radius: 4px;
+  height: var(--control-h);
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
   font-size: 13px;
   background: var(--bg-surface);
   color: var(--text);
+  outline: none;
+  transition: border-color var(--ease);
+}
+.select-input {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
+}
+.select-input:hover,
+.select-input:focus,
+.width-input:hover,
+.width-input:focus {
+  border-color: var(--border-strong);
+}
+.width-input {
+  width: 88px;
 }
 .max-width-row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1);
+  flex-wrap: wrap;
 }
-.width-input {
-  width: 80px;
-  padding: 4px 6px;
-  border: 1px solid var(--border-strong);
-  border-radius: 4px;
+.max-width-row .param-label {
+  text-transform: none;
+  letter-spacing: -0.01em;
   font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin: 0;
 }
 .width-unit {
-  font-size: 12px;
+  font-size: var(--font-caption);
   color: var(--text-muted);
 }
 
 @media (max-width: 768px) {
   .param-panel {
-    padding: 12px;
+    padding: var(--space-3);
   }
 }
 </style>

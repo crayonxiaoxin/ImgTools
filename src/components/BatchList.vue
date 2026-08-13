@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useImageStore } from '@/stores/imageStore'
+import { useImageStore, type ImageItem } from '@/stores/imageStore'
 import { useImageProcessor } from '@/composables/useImageProcessor'
 import { useBatchExport } from '@/composables/useBatchExport'
+import { useToast } from '@/composables/useToast'
 import { formatSize } from '@/utils/format'
 
 const { t } = useI18n()
@@ -14,122 +16,280 @@ const statusKey: Record<string, string> = {
   done: 'batch.statusDone',
   error: 'batch.statusError',
 }
-const { processAll } = useImageProcessor()
+const { processAll: runProcessAll } = useImageProcessor()
 const { downloadSingle, downloadAllAsZip, downloadAllIndividual } = useBatchExport()
+const toast = useToast()
+
+const finishedCount = computed(() =>
+  store.images.filter(i => i.status === 'done' || i.status === 'error').length
+)
+const doneCount = computed(() => store.images.filter(i => i.status === 'done').length)
+const totalCount = computed(() => store.images.length)
+const progressPercent = computed(() =>
+  totalCount.value === 0 ? 0 : Math.round((finishedCount.value / totalCount.value) * 100)
+)
+const showProgress = computed(() =>
+  store.processing || finishedCount.value > 0
+)
 
 function hasResults(): boolean {
   return store.images.some(i => i.status === 'done')
 }
+
+async function processAll() {
+  const summary = await runProcessAll()
+  if (summary.total === 0) return
+  if (summary.failed > 0) {
+    toast.error(t('batch.doneWithErrors', {
+      done: summary.done,
+      failed: summary.failed,
+      total: summary.total,
+    }))
+  } else {
+    toast.success(t('batch.doneAll', { n: summary.done }))
+  }
+}
+
+function formatLine(item: ImageItem): string {
+  const from = item.format?.toUpperCase() ?? '-'
+  if (item.status === 'done' && item.config.targetFormat !== item.format) {
+    return `${from} → ${item.config.targetFormat.toUpperCase()}`
+  }
+  return from
+}
+
+function resultText(item: ImageItem): string | null {
+  if (!item.resultSize) return null
+  if (item.resultSize < item.size) {
+    const pct = ((1 - item.resultSize / item.size) * 100).toFixed(0)
+    return `→ ${formatSize(item.resultSize)} (-${pct}%)`
+  }
+  return null
+}
 </script>
 
 <template>
-  <div class="batch-list">
-    <div class="batch-header">
-      <h3>{{ t('batch.title', { n: store.images.length }) }}</h3>
-      <div class="batch-actions">
-        <button
-          class="btn btn-primary"
-          :disabled="store.processing"
-          @click="processAll"
-        >
-          {{ store.processing ? t('batch.processing') : t('batch.start') }}
-        </button>
-        <button
-          class="btn"
-          :disabled="!hasResults()"
-          @click="downloadAllAsZip"
-        >{{ t('batch.exportZip') }}</button>
-        <button
-          class="btn"
-          :disabled="!hasResults()"
-          @click="downloadAllIndividual"
-        >{{ t('batch.downloadAll') }}</button>
-        <button
-          class="btn btn-danger"
-          :disabled="store.images.length === 0"
-          @click="store.clearAll()"
-        >{{ t('batch.clear') }}</button>
+  <div class="batch-list" :class="{ 'is-empty': store.images.length === 0 }">
+    <template v-if="store.images.length === 0">
+      <p class="empty-hint">{{ t('batch.empty') }}</p>
+    </template>
+
+    <template v-else>
+      <div class="batch-header">
+        <div class="batch-heading">
+          <h3>{{ t('batch.title', { n: store.images.length }) }}</h3>
+          <span v-if="showProgress" class="progress-label">
+            {{ t('batch.progress', { done: doneCount, total: totalCount }) }}
+          </span>
+        </div>
+        <div class="batch-actions">
+          <button
+            class="btn btn-primary"
+            :disabled="store.processing"
+            @click="processAll"
+          >
+            {{ store.processing ? t('batch.processing') : t('batch.start') }}
+          </button>
+          <button
+            class="btn"
+            :disabled="!hasResults()"
+            @click="downloadAllAsZip"
+          >{{ t('batch.exportZip') }}</button>
+          <button
+            class="btn"
+            :disabled="!hasResults()"
+            @click="downloadAllIndividual"
+          >{{ t('batch.downloadAll') }}</button>
+          <button
+            class="btn btn-danger"
+            @click="store.clearAll()"
+          >{{ t('batch.clear') }}</button>
+        </div>
       </div>
-    </div>
-    <div class="batch-table-wrap" v-if="store.images.length > 0">
-      <table class="batch-table">
-        <thead>
-          <tr>
-            <th></th>
-            <th>{{ t('batch.colFilename') }}</th>
-            <th>{{ t('batch.colOriginalSize') }}</th>
-            <th>{{ t('batch.colFormat') }}</th>
-            <th>{{ t('batch.colResult') }}</th>
-            <th>{{ t('batch.colStatus') }}</th>
-            <th>{{ t('batch.colAction') }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="item in store.images" :key="item.id">
-            <td class="thumb-cell">
-              <img v-if="item.previewUrl" :src="item.previewUrl" :alt="item.name" class="thumb" />
-            </td>
-            <td :title="item.name">{{ item.name }}</td>
-            <td>{{ formatSize(item.size) }}</td>
+
+      <div v-if="showProgress" class="progress-track" :class="{ active: store.processing }">
+        <div
+          class="progress-fill"
+          :style="{ width: progressPercent + '%' }"
+        />
+      </div>
+
+      <!-- Desktop table -->
+      <div class="batch-table-wrap">
+        <table class="batch-table">
+          <thead>
+            <tr>
+              <th></th>
+              <th>{{ t('batch.colFilename') }}</th>
+              <th>{{ t('batch.colOriginalSize') }}</th>
+              <th>{{ t('batch.colFormat') }}</th>
+              <th>{{ t('batch.colResult') }}</th>
+              <th>{{ t('batch.colStatus') }}</th>
+              <th>{{ t('batch.colAction') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="item in store.images" :key="item.id">
+              <td class="thumb-cell">
+                <img v-if="item.previewUrl" :src="item.previewUrl" :alt="item.name" class="thumb" />
+              </td>
+              <td :title="item.name">{{ item.name }}</td>
+              <td>{{ formatSize(item.size) }}</td>
+              <td>{{ formatLine(item) }}</td>
+              <td>
+                <template v-if="item.resultSize">
+                  <span v-if="resultText(item)" class="rate">{{ resultText(item) }}</span>
+                  <span v-else class="rate-negative">{{ t('batch.uncompressed') }}</span>
+                </template>
+                <span v-else>-</span>
+              </td>
             <td>
-              {{ item.format?.toUpperCase() ?? '-' }}
-              <template v-if="item.status === 'done' && item.config.targetFormat !== item.format">
-                → {{ item.config.targetFormat.toUpperCase() }}
-              </template>
-            </td>
-            <td>
-              <template v-if="item.resultSize">
-                <span v-if="item.resultSize < item.size" class="rate">
-                  → {{ formatSize(item.resultSize) }} (-{{ ((1 - item.resultSize / item.size) * 100).toFixed(0) }}%)
-                </span>
-                <span v-else class="rate-negative">{{ t('batch.uncompressed') }}</span>
-              </template>
-              <span v-else>-</span>
-            </td>
-            <td>
-              <span class="status-tag" :class="item.status">
+              <span
+                class="status-tag"
+                :class="item.status"
+                :title="item.status === 'error' ? item.errorMessage : undefined"
+              >
                 {{ t(statusKey[item.status]) }}
               </span>
             </td>
-            <td>
-              <button
-                v-if="item.status === 'done'"
-                class="btn btn-sm"
-                @click="downloadSingle(item.id)"
-              >{{ t('batch.download') }}</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+              <td>
+                <button
+                  v-if="item.status === 'done'"
+                  class="btn btn-sm"
+                  @click="downloadSingle(item.id)"
+                >{{ t('batch.download') }}</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Mobile cards -->
+      <div class="batch-cards">
+        <div
+          v-for="item in store.images"
+          :key="item.id"
+          class="batch-card"
+          :class="item.status"
+        >
+          <img v-if="item.previewUrl" :src="item.previewUrl" :alt="item.name" class="card-thumb" />
+          <div class="card-body">
+            <div class="card-top">
+              <span class="card-name" :title="item.name">{{ item.name }}</span>
+              <span
+                class="status-tag"
+                :class="item.status"
+                :title="item.status === 'error' ? item.errorMessage : undefined"
+              >
+                {{ t(statusKey[item.status]) }}
+              </span>
+            </div>
+            <div class="card-meta">
+              <span>{{ formatSize(item.size) }}</span>
+              <span class="dot">·</span>
+              <span>{{ formatLine(item) }}</span>
+              <template v-if="item.resultSize">
+                <span class="dot">·</span>
+                <span v-if="resultText(item)" class="rate">{{ resultText(item) }}</span>
+                <span v-else class="rate-negative">{{ t('batch.uncompressed') }}</span>
+              </template>
+            </div>
+            <button
+              v-if="item.status === 'done'"
+              class="btn btn-sm card-dl"
+              @click="downloadSingle(item.id)"
+            >{{ t('batch.download') }}</button>
+          </div>
+        </div>
+      </div>
+    </template>
   </div>
 </template>
 
 <style scoped>
 .batch-list {
-  margin-top: 16px;
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+  background: var(--bg-surface);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-soft);
+}
+.batch-list.is-empty {
+  padding: var(--space-3) var(--space-4);
+  box-shadow: none;
+  background: transparent;
+  border-style: dashed;
+}
+.empty-hint {
+  margin: 0;
+  text-align: center;
+  font-size: var(--font-caption);
+  color: var(--text-muted);
+  padding: var(--space-1) 0;
 }
 .batch-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.batch-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 .batch-header h3 {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+.progress-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
 }
 .batch-actions {
   display: flex;
-  gap: 6px;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+}
+.progress-track {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--bg-dim);
+  margin-bottom: var(--space-3);
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--primary);
+  transition: width 0.25s ease;
+}
+.progress-track.active .progress-fill {
+  background: linear-gradient(90deg, var(--primary), var(--primary-hover));
 }
 .btn {
-  padding: 6px 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: 6px;
+  padding: 0 14px;
+  height: var(--control-h);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
   background: var(--bg-surface);
   font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
+  color: var(--text-secondary);
+  transition: border-color var(--ease), background var(--ease), color var(--ease);
+}
+.btn:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  background: var(--bg-hover);
+  color: var(--text);
 }
 .btn:disabled {
   opacity: 0.45;
@@ -140,20 +300,32 @@ function hasResults(): boolean {
 }
 .btn-primary {
   background: var(--primary);
-  color: var(--bg-surface);
+  color: #fff;
   border-color: var(--primary);
+  font-weight: 600;
+  padding: 0 18px;
+  letter-spacing: -0.01em;
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
+  color: #fff;
 }
 .btn-primary:disabled {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1);
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+  opacity: 0.7;
 }
 .btn-primary:disabled::before {
   content: '';
   width: 12px;
   height: 12px;
   border: 2px solid rgba(255,255,255,0.6);
-  border-top-color: var(--bg-surface);
+  border-top-color: #fff;
   border-radius: 50%;
   animation: btn-spin 0.6s linear infinite;
 }
@@ -164,12 +336,18 @@ function hasResults(): boolean {
   color: var(--danger);
   border-color: var(--danger);
 }
+.btn-danger:hover:not(:disabled) {
+  background: var(--danger-bg);
+}
 .btn-sm {
-  padding: 2px 8px;
-  font-size: 12px;
+  height: 28px;
+  padding: 0 var(--space-2);
+  font-size: var(--font-caption);
 }
 .batch-table-wrap {
   overflow-x: auto;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
 }
 .batch-table {
   width: 100%;
@@ -178,36 +356,41 @@ function hasResults(): boolean {
 }
 .batch-table th {
   background: var(--bg-hover);
-  padding: 8px 10px;
+  padding: var(--space-2) var(--space-3);
   text-align: left;
   font-weight: 500;
   color: var(--text-secondary);
   white-space: nowrap;
 }
 .batch-table td {
-  padding: 8px 10px;
+  padding: var(--space-2) var(--space-3);
   border-top: 1px solid var(--border);
+  vertical-align: middle;
+}
+.batch-table tbody tr:hover {
+  background: var(--bg-faint);
 }
 .thumb-cell {
-  width: 48px;
-  padding: 4px !important;
+  width: 64px;
+  padding: var(--space-1) !important;
 }
 .thumb {
-  width: 40px;
-  height: 40px;
+  width: 56px;
+  height: 56px;
   object-fit: cover;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   display: block;
 }
 .status-tag {
   display: inline-block;
-  padding: 2px 8px;
-  border-radius: 10px;
-  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: var(--font-caption);
+  white-space: nowrap;
 }
-.status-tag.pending { background: var(--bg-dim); color: var(--text-muted); }
+.status-tag.pending { background: var(--tag-pending-bg); color: var(--text-muted); }
 .status-tag.processing {
-  background: var(--primary-bg);
+  background: var(--tag-processing-bg);
   color: var(--primary);
   display: inline-flex;
   align-items: center;
@@ -225,8 +408,8 @@ function hasResults(): boolean {
 @keyframes proc-spin {
   to { transform: rotate(360deg); }
 }
-.status-tag.done { background: var(--success-bg); color: var(--success); }
-.status-tag.error { background: var(--danger-bg); color: var(--danger); }
+.status-tag.done { background: var(--tag-done-bg); color: var(--success); }
+.status-tag.error { background: var(--tag-error-bg); color: var(--danger); }
 .rate {
   color: var(--success);
   font-weight: 500;
@@ -236,26 +419,90 @@ function hasResults(): boolean {
   font-weight: 500;
 }
 
+/* Mobile cards — hidden on desktop */
+.batch-cards {
+  display: none;
+}
+
 @media (max-width: 768px) {
-  .batch-table th,
-  .batch-table td {
-    padding: 6px 4px;
-    font-size: 12px;
+  .batch-list {
+    padding: var(--space-3);
+  }
+  .batch-list.is-empty {
+    padding: var(--space-2) var(--space-3);
   }
   .batch-header {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
+    align-items: stretch;
+    gap: var(--space-2);
   }
   .batch-actions {
     flex-wrap: wrap;
   }
-  .thumb-cell {
-    width: 36px;
+  .btn-primary {
+    flex: 1;
+    min-width: 120px;
   }
-  .thumb {
-    width: 28px;
-    height: 28px;
+  .batch-table-wrap {
+    display: none;
+  }
+  .batch-cards {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .batch-card {
+    display: flex;
+    gap: var(--space-2);
+    padding: var(--space-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-faint);
+  }
+  .batch-card.processing {
+    border-color: var(--primary);
+    background: var(--primary-bg);
+  }
+  .card-thumb {
+    width: 56px;
+    height: 56px;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+    flex-shrink: 0;
+  }
+  .card-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-1);
+  }
+  .card-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px;
+    font-size: var(--font-caption);
+    color: var(--text-muted);
+  }
+  .dot { opacity: 0.5; }
+  .card-dl {
+    align-self: flex-start;
+    margin-top: 2px;
   }
 }
 </style>

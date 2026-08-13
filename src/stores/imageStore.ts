@@ -48,6 +48,7 @@ export const useImageStore = defineStore('images', () => {
   const activeMode = ref<AppMode>('compress')
   const processing = ref(false)
   const vipsReady = ref(false)
+  const vipsLoading = ref(true)
 
   const selectedFormats = computed(() => {
     const set = new Set<ImageFormat>()
@@ -120,6 +121,11 @@ export const useImageStore = defineStore('images', () => {
 
   function setVipsReady(val: boolean) {
     vipsReady.value = val
+    if (val) vipsLoading.value = false
+  }
+
+  function setVipsLoading(val: boolean) {
+    vipsLoading.value = val
   }
 
   function setFaviconResults(id: string, results: FaviconResult[]) {
@@ -152,9 +158,9 @@ export const useImageStore = defineStore('images', () => {
   }
 
   return {
-    images, activeMode, processing, vipsReady, selectedFormats,
+    images, activeMode, processing, vipsReady, vipsLoading, selectedFormats,
     addImages, removeImage, clearAll, updateConfig,
-    setResult, setError, setProcessing, setVipsReady, setMode,
+    setResult, setError, setProcessing, setVipsReady, setVipsLoading, setMode,
     setFaviconResults,
   }
 })

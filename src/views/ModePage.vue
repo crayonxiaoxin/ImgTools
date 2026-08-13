@@ -11,6 +11,8 @@ import FaviconPanel from '@/components/FaviconPanel.vue'
 import PdfPanel from '@/components/PdfPanel.vue'
 import BatchList from '@/components/BatchList.vue'
 import StatusBar from '@/components/StatusBar.vue'
+import ToastHost from '@/components/ToastHost.vue'
+import { useI18n } from 'vue-i18n'
 
 // Initialize theme BEFORE child components mount
 const savedTheme = localStorage.getItem('imgtools-theme')
@@ -26,9 +28,11 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e)
   }
 })
 
+const { t } = useI18n()
 const route = useRoute()
 const store = useImageStore()
 const isFaviconMode = computed(() => store.activeMode === 'favicon')
+const showEngineHint = computed(() => store.vipsLoading && !store.vipsReady)
 
 watch(() => route.name, (name) => {
   if (name && typeof name === 'string') {
@@ -43,6 +47,13 @@ watch(() => route.name, (name) => {
     <div class="app-body">
       <Sidebar />
       <main class="main-area">
+        <div v-if="showEngineHint" class="engine-hint" role="status">
+          <span class="engine-spinner"></span>
+          <div>
+            <p class="engine-title">{{ t('status.engineHintTitle') }}</p>
+            <p class="engine-desc">{{ t('status.engineHintDesc') }}</p>
+          </div>
+        </div>
         <FaviconPanel v-if="isFaviconMode" />
         <PdfPanel v-else-if="store.activeMode === 'pdf'" />
         <template v-else>
@@ -59,95 +70,126 @@ watch(() => route.name, (name) => {
       </main>
     </div>
     <StatusBar />
+    <ToastHost />
   </div>
 </template>
 
 <style>
 :root {
-  --bg-page: #f5f5f5;
-  --bg-surface: #fff;
-  --bg-hover: #f5f5f5;
-  --bg-active: #e8f4f8;
-  --bg-dim: #f0f0f0;
-  --bg-faint: #fafafa;
-  --border: #eee;
-  --border-strong: #ddd;
-  --text: #333;
-  --text-secondary: #666;
-  --text-muted: #999;
-  --text-faint: #bbb;
-  --primary: #409eff;
-  --primary-hover: #2d7ee0;
-  --primary-bg: #ecf5ff;
-  --primary-text: #2563eb;
-  --success: #67c23a;
-  --success-bg: #f0f9eb;
-  --warning: #e6a23c;
-  --warning-bg: #fef0f0;
-  --danger: #f56c6c;
-  --danger-bg: #fef0f0;
-  --drop-border: #d0d5dd;
-  --drop-bg: #fafbfc;
-  --drop-hover-bg: #f0f7ff;
-  --crop-bg: #f0f0f0;
-  --crop-mask: rgba(0,0,0,0.45);
-  --chip-border: #e4e7ec;
-  --chip-hover: #b0b7c3;
-  --chip-active-bg: #eff6ff;
-  --placeholder: #98a2b3;
-  --card-border: #e4e7ec;
-  --card-bg: #fafbfc;
-  --tag-processing-bg: #ecf5ff;
-  --tag-done-bg: #f0f9eb;
-  --tag-error-bg: #fef0f0;
-  --tag-pending-bg: #f0f0f0;
+  --space-1: 8px;
+  --space-2: 12px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 32px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --font-caption: 12px;
+  --font-body: 14px;
+  --font-title: 15px;
+  --font-display: 18px;
+  --control-h: 34px;
+  --shadow-soft: 0 0 0 1px rgba(15, 23, 42, 0.04);
+  --ease: 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  --bg-page: #f6f7f9;
+  --bg-surface: #ffffff;
+  --bg-hover: #f1f3f5;
+  --bg-active: #eef2ff;
+  --bg-dim: #eceef2;
+  --bg-faint: #fafbfc;
+  --border: #e8eaee;
+  --border-strong: #d8dbe2;
+  --text: #111827;
+  --text-secondary: #4b5563;
+  --text-muted: #9ca3af;
+  --text-faint: #c4c9d4;
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-bg: #eff4ff;
+  --primary-text: #1d4ed8;
+  --success: #16a34a;
+  --success-bg: #f0fdf4;
+  --warning: #d97706;
+  --warning-bg: #fffbeb;
+  --danger: #dc2626;
+  --danger-bg: #fef2f2;
+  --drop-border: #d5d9e2;
+  --drop-bg: #fbfcfd;
+  --drop-hover-bg: #f5f8ff;
+  --crop-bg: #eceef2;
+  --crop-mask: rgba(15, 23, 42, 0.48);
+  --chip-border: #e2e5eb;
+  --chip-hover: #94a3b8;
+  --chip-active-bg: #eff4ff;
+  --placeholder: #94a3b8;
+  --card-border: #e8eaee;
+  --card-bg: #fbfcfd;
+  --tag-processing-bg: #eff4ff;
+  --tag-done-bg: #f0fdf4;
+  --tag-error-bg: #fef2f2;
+  --tag-pending-bg: #eceef2;
 }
 
 :root.dark {
-  --bg-page: #1a1a2e;
-  --bg-surface: #16213e;
-  --bg-hover: #1e2a4a;
-  --bg-active: #1a3a5c;
-  --bg-dim: #1e2a4a;
-  --bg-faint: #0f3460;
-  --border: #2a3a5c;
-  --border-strong: #3a4a6c;
-  --text: #e0e6f0;
-  --text-secondary: #a0b0c8;
-  --text-muted: #7a8aaa;
-  --text-faint: #5a6a8a;
-  --primary: #60b0ff;
-  --primary-hover: #409eff;
-  --primary-bg: #1a3050;
-  --primary-text: #60b0ff;
-  --success: #67c23a;
-  --success-bg: #1a3a1a;
-  --warning: #e6a23c;
-  --danger: #f56c6c;
-  --danger-bg: #3a1a1a;
-  --drop-border: #3a4a6c;
-  --drop-bg: #16213e;
-  --drop-hover-bg: #1a3050;
-  --crop-bg: #1e2a4a;
-  --crop-mask: rgba(0,0,0,0.6);
-  --chip-border: #3a4a6c;
-  --chip-hover: #5a6a8a;
-  --chip-active-bg: #1a3050;
-  --placeholder: #5a6a8a;
-  --card-border: #2a3a5c;
-  --card-bg: #1e2a4a;
-  --tag-processing-bg: #1a3050;
-  --tag-done-bg: #1a3a1a;
-  --tag-error-bg: #3a1a1a;
-  --tag-pending-bg: #2a3a5c;
+  --shadow-soft: 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --bg-page: #0b0c0f;
+  --bg-surface: #12141a;
+  --bg-hover: #1a1d26;
+  --bg-active: #172033;
+  --bg-dim: #1a1d26;
+  --bg-faint: #0e1015;
+  --border: #23262f;
+  --border-strong: #323642;
+  --text: #f3f4f6;
+  --text-secondary: #a1a8b3;
+  --text-muted: #6b7280;
+  --text-faint: #4b5563;
+  --primary: #60a5fa;
+  --primary-hover: #3b82f6;
+  --primary-bg: #152238;
+  --primary-text: #93c5fd;
+  --success: #22c55e;
+  --success-bg: #0f2418;
+  --warning: #f59e0b;
+  --warning-bg: #2a1f0a;
+  --danger: #f87171;
+  --danger-bg: #2a1212;
+  --drop-border: #323642;
+  --drop-bg: #12141a;
+  --drop-hover-bg: #152238;
+  --crop-bg: #1a1d26;
+  --crop-mask: rgba(0, 0, 0, 0.62);
+  --chip-border: #323642;
+  --chip-hover: #6b7280;
+  --chip-active-bg: #152238;
+  --placeholder: #6b7280;
+  --card-border: #23262f;
+  --card-bg: #1a1d26;
+  --tag-processing-bg: #152238;
+  --tag-done-bg: #0f2418;
+  --tag-error-bg: #2a1212;
+  --tag-pending-bg: #1a1d26;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
+
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: var(--font-body);
+  font-feature-settings: 'ss01' on, 'cv11' on;
+  letter-spacing: -0.011em;
   background: var(--bg-page);
   color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
+
+button, input, select, textarea {
+  font: inherit;
+  letter-spacing: inherit;
+}
+
 .app-layout {
   display: flex;
   flex-direction: column;
@@ -160,31 +202,72 @@ body {
 }
 .main-area {
   flex: 1;
-  padding: 16px;
+  padding: var(--space-4);
   overflow-y: auto;
 }
 .content-panels {
   display: flex;
-  gap: 16px;
+  gap: var(--space-3);
+  align-items: stretch;
 }
 .left-panel {
   flex: 1;
+  min-width: 0;
 }
 .right-panel {
-  width: 240px;
+  width: 300px;
   flex-shrink: 0;
 }
 
+.engine-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--primary) 22%, var(--border));
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--primary-bg) 65%, var(--bg-surface));
+}
+.engine-spinner {
+  width: 14px;
+  height: 14px;
+  margin-top: 2px;
+  flex-shrink: 0;
+  border: 2px solid color-mix(in srgb, var(--primary) 30%, transparent);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: engine-spin 0.7s linear infinite;
+}
+@keyframes engine-spin {
+  to { transform: rotate(360deg); }
+}
+.engine-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+.engine-desc {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
 @media (max-width: 768px) {
+  .app-layout {
+    padding-bottom: 60px;
+  }
   .app-body {
     flex-direction: column;
   }
   .main-area {
-    padding: 12px;
-    padding-bottom: 60px;
+    padding: var(--space-2);
   }
   .content-panels {
     flex-direction: column;
+    gap: var(--space-3);
   }
   .right-panel {
     width: 100%;

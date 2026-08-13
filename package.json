@@ -4,11 +4,14 @@
   "version": "0.4.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vue-tsc --noEmit && vite build",
+    "sync-wasm": "node scripts/sync-wasm.mjs",
+    "postinstall": "node scripts/sync-wasm.mjs",
+    "dev": "npm run sync-wasm && vite",
+    "build": "npm run sync-wasm && vue-tsc --noEmit && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fontsource/plus-jakarta-sans": "^5.3.0",
     "jszip": "^3.10",
     "pdfjs-dist": "^5.7.284",
     "pinia": "^2.2",

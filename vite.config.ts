@@ -1,12 +1,28 @@
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { fileURLToPath, URL } from 'node:url'
+import { execFileSync } from 'node:child_process'
 import { VitePWA } from 'vite-plugin-pwa'
+
+/** Ensure public/assets WASM binaries stay in sync with node_modules. */
+function syncWasmPlugin(): Plugin {
+  const run = () => {
+    execFileSync(process.execPath, ['scripts/sync-wasm.mjs'], { stdio: 'inherit' })
+  }
+  return {
+    name: 'sync-wasm-vips',
+    buildStart: run,
+    configureServer() {
+      run()
+    },
+  }
+}
 
 export default defineConfig({
   base: process.env.GITHUB_PAGES ? '/img-tools/' : '/',
   plugins: [
     vue(),
+    syncWasmPlugin(),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['logo.svg', 'favicon.svg'],
