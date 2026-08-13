@@ -12,7 +12,7 @@ export interface MetaField {
   sensitive?: boolean
 }
 
-export const STRIP_UNSUPPORTED = new Set<ImageFormat>(['svg', 'pdf', 'gif'])
+export const STRIP_UNSUPPORTED: ReadonlySet<ImageFormat> = new Set(['svg', 'pdf', 'gif'])
 
 const IGNORE_FIELDS = new Set([
   'vips-loader', 'width', 'height', 'bands', 'format', 'coding',
@@ -138,10 +138,11 @@ export async function stripMetadata(
   }
 
   const v = await initVips()
-  let image = v.Image.newFromBuffer(new Uint8Array(buffer))
+  const decoded = v.Image.newFromBuffer(new Uint8Array(buffer))
+  let image = decoded
   try {
     // Apply EXIF orientation into pixels, then strip orientation tag via re-encode keep flags
-    image = image.autorot()
+    image = decoded.autorot()
 
     const extMap: Record<string, string> = {
       jpeg: '.jpg',
@@ -152,6 +153,7 @@ export async function stripMetadata(
       tiff: '.tiff',
     }
     const ext = extMap[options.format]
+    if (!ext) throw new Error(`Unsupported output format: ${options.format}`)
     const keep = options.removeIcc ? 'none' : 'icc'
     // High fidelity — not a compressor
     const qualityOpts =
@@ -170,6 +172,7 @@ export async function stripMetadata(
       metaAfter,
     }
   } finally {
-    image.delete?.()
+    if (image !== decoded) image.delete?.()
+    decoded.delete?.()
   }
 }
