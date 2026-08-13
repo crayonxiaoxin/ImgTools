@@ -45,7 +45,6 @@ const MetaList = defineComponent({
   name: 'MetaList',
   props: {
     fields: { type: Array as PropType<MetaField[] | undefined>, default: undefined },
-    itemId: { type: String, required: true },
     side: { type: String as PropType<'before' | 'after'>, required: true },
     afterKeys: { type: Object as PropType<Set<string> | null>, default: null },
     revealed: { type: Boolean, default: false },
@@ -148,6 +147,10 @@ function formatLine(item: ImageItem): string {
 
 function resultText(item: ImageItem): string | null {
   if (!item.resultSize) return null
+  // Strip mode: show absolute size (neutral); never "uncompressed"
+  if (store.activeMode === 'strip') {
+    return `→ ${formatSize(item.resultSize)}`
+  }
   if (item.resultSize < item.size) {
     const pct = ((1 - item.resultSize / item.size) * 100).toFixed(0)
     return `→ ${formatSize(item.resultSize)} (-${pct}%)`
@@ -269,7 +272,6 @@ function resultText(item: ImageItem): string | null {
                       <h4>{{ t('strip.before') }}</h4>
                       <MetaList
                         :fields="item.metaBefore"
-                        :item-id="item.id"
                         side="before"
                         :after-keys="afterKeySet(item)"
                         :revealed="!!revealedGps[item.id]"
@@ -280,7 +282,7 @@ function resultText(item: ImageItem): string | null {
                       <h4>
                         {{ t('strip.after') }}
                         <span
-                          v-if="item.metaAfter && item.metaBefore"
+                          v-if="item.metaAfter && item.metaBefore && clearedCount(item) > 0"
                           class="badge"
                         >
                           {{ t('strip.cleared', { n: clearedCount(item) }) }}
@@ -289,7 +291,6 @@ function resultText(item: ImageItem): string | null {
                       <template v-if="item.status === 'done'">
                         <MetaList
                           :fields="item.metaAfter"
-                          :item-id="item.id"
                           side="after"
                           :revealed="!!revealedGps[item.id]"
                           @toggle-gps="toggleGps(item.id)"
@@ -361,7 +362,6 @@ function resultText(item: ImageItem): string | null {
               <h4>{{ t('strip.before') }}</h4>
               <MetaList
                 :fields="item.metaBefore"
-                :item-id="item.id"
                 side="before"
                 :after-keys="afterKeySet(item)"
                 :revealed="!!revealedGps[item.id]"
@@ -372,7 +372,7 @@ function resultText(item: ImageItem): string | null {
               <h4>
                 {{ t('strip.after') }}
                 <span
-                  v-if="item.metaAfter && item.metaBefore"
+                  v-if="item.metaAfter && item.metaBefore && clearedCount(item) > 0"
                   class="badge"
                 >
                   {{ t('strip.cleared', { n: clearedCount(item) }) }}
@@ -381,7 +381,6 @@ function resultText(item: ImageItem): string | null {
               <template v-if="item.status === 'done'">
                 <MetaList
                   :fields="item.metaAfter"
-                  :item-id="item.id"
                   side="after"
                   :revealed="!!revealedGps[item.id]"
                   @toggle-gps="toggleGps(item.id)"

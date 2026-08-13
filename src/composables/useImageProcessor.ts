@@ -27,10 +27,9 @@ export function useImageProcessor() {
         if (!item.metaBefore) {
           try { item.metaBefore = await extractMetadata(buffer) } catch { /* ignore */ }
         }
-        const outFormat = FORMATS[format].writable ? format : 'png'
         const result = await stripMetadata(buffer, {
           removeIcc: store.stripConfig.removeIcc,
-          format: outFormat,
+          format,
         })
         const blob = new Blob([result.data as BlobPart], { type: `image/${result.format}` })
         const url = URL.createObjectURL(blob)

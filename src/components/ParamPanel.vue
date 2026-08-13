@@ -166,7 +166,7 @@ function setMaxWidth(val: number) {
       <p class="hint muted">{{ t('strip.removeIccHint') }}</p>
     </template>
 
-    <div class="param-group">
+    <div v-if="store.activeMode !== 'strip'" class="param-group">
       <div class="max-width-row">
         <input
           type="checkbox"

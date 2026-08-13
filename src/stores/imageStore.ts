@@ -60,6 +60,19 @@ export const useImageStore = defineStore('images', () => {
     return Array.from(set)
   })
 
+  function scanItemMetadata(item: ImageItem) {
+    if (!item.format || STRIP_UNSUPPORTED.has(item.format) || !FORMATS[item.format].writable) return
+    void item.file.arrayBuffer()
+      .then(buf => extractMetadata(buf))
+      .then(fields => {
+        const current = images.value.find(i => i.id === item.id)
+        if (current && !current.metaBefore) current.metaBefore = fields
+      })
+      .catch(() => {
+        /* leave metaBefore undefined → UI shows unread */
+      })
+  }
+
   function addImages(files: File[]) {
     const items: ImageItem[] = files.map(file => {
       const fmt = detectFormat(file.name, file.type)
@@ -82,16 +95,7 @@ export const useImageStore = defineStore('images', () => {
 
     // Non-blocking metadata scan for strip UI (and cheap enough always-on)
     for (const item of items) {
-      if (!item.format || STRIP_UNSUPPORTED.has(item.format)) continue
-      void item.file.arrayBuffer()
-        .then(buf => extractMetadata(buf))
-        .then(fields => {
-          const current = images.value.find(i => i.id === item.id)
-          if (current && !current.metaBefore) current.metaBefore = fields
-        })
-        .catch(() => {
-          /* leave metaBefore undefined → UI shows unread */
-        })
+      scanItemMetadata(item)
     }
   }
 
@@ -190,6 +194,13 @@ export const useImageStore = defineStore('images', () => {
       }
     })
     stripConfig.value = { removeIcc: false }
+
+    // Re-scan metadata when entering strip so existing images show before-meta again
+    if (mode === 'strip') {
+      for (const item of images.value) {
+        scanItemMetadata(item)
+      }
+    }
   }
 
   return {
