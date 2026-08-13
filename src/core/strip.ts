@@ -53,11 +53,11 @@ export function mapVipsFieldsToMeta(
       else gpsParts.push(name)
       continue
     }
-    // curated exif keys
+    // curated exif keys (exact short names only — avoid LensMake matching Make)
     const short = name.replace(/^exif-ifd\d+-/i, '').replace(/^exif-/i, '')
     if (group === 'exif') {
       const interesting = ['Make', 'Model', 'DateTime', 'DateTimeOriginal', 'Software', 'Orientation', 'Artist', 'Copyright']
-      if (!interesting.some(k => short === k || short.endsWith(k))) continue
+      if (!interesting.includes(short)) continue
       out.push({
         key: `exif:${short}`,
         labelKey: `strip.fields.${short}`,

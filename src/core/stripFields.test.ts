@@ -45,6 +45,14 @@ describe('mapVipsFieldsToMeta', () => {
     expect(fields.some(f => f.key.includes('vips-loader'))).toBe(false)
   })
 
+  it('does not treat LensMake as Make via suffix match', () => {
+    const fields = mapVipsFieldsToMeta(['exif-ifd2-LensMake', 'exif-ifd0-Make'], (name) =>
+      name.includes('Lens') ? 'LensCo' : 'TestCam',
+    )
+    expect(fields.map(f => f.key)).toEqual(['exif:Make'])
+    expect(fields[0].value).toBe('TestCam')
+  })
+
   it('returns empty array when no user-facing metadata', () => {
     expect(mapVipsFieldsToMeta(['vips-loader', 'width'], () => undefined)).toEqual([])
   })
