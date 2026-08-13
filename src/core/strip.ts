@@ -102,6 +102,26 @@ export function mapVipsFieldsToMeta(
   return out.filter(f => (seen.has(f.key) ? false : (seen.add(f.key), true)))
 }
 
+/** libvips EXIF get_string often looks like: "TestCam (TestCam, ASCII, 8 components, 8 bytes)" */
+export function cleanVipsExifString(raw: string): string {
+  const m = /^(.*) \([^()]*, [^()]*, \d+ components, \d+ bytes\)$/.exec(raw)
+  return m ? m[1] : raw
+}
+
+function readImageField(image: any, name: string): string | undefined {
+  try {
+    // wasm-vips Image may not expose getType; avoid calling it when missing
+    if (typeof image.getType === 'function' && image.getType(name) === 0) {
+      return undefined
+    }
+    const raw = image.getString(name)
+    if (raw == null || raw === '') return undefined
+    return cleanVipsExifString(String(raw))
+  } catch {
+    return undefined
+  }
+}
+
 function fieldsFromImage(image: any): MetaField[] {
   const names: string[] = []
   const vector = image.getFields()
@@ -109,14 +129,7 @@ function fieldsFromImage(image: any): MetaField[] {
   for (let i = 0; i < n; i++) {
     names.push(typeof vector.get === 'function' ? vector.get(i) : vector[i])
   }
-  return mapVipsFieldsToMeta(names, (name) => {
-    try {
-      if (image.getType(name) === 0) return undefined
-      return String(image.getString(name))
-    } catch {
-      return undefined
-    }
-  })
+  return mapVipsFieldsToMeta(names, (name) => readImageField(image, name))
 }
 
 export async function extractMetadata(buffer: ArrayBuffer): Promise<MetaField[]> {

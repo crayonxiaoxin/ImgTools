@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest'
-import { mapVipsFieldsToMeta } from './strip'
+import { mapVipsFieldsToMeta, cleanVipsExifString } from './strip'
+
+describe('cleanVipsExifString', () => {
+  it('strips libvips ASCII decoration', () => {
+    expect(cleanVipsExifString('TestCam (TestCam, ASCII, 8 components, 8 bytes)')).toBe('TestCam')
+    expect(cleanVipsExifString('plain')).toBe('plain')
+  })
+})
 
 describe('mapVipsFieldsToMeta', () => {
   it('maps camera/datetime to exif and collapses gps', () => {
