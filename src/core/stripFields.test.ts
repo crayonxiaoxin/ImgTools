@@ -6,6 +6,12 @@ describe('cleanVipsExifString', () => {
     expect(cleanVipsExifString('TestCam (TestCam, ASCII, 8 components, 8 bytes)')).toBe('TestCam')
     expect(cleanVipsExifString('plain')).toBe('plain')
   })
+
+  it('strips decoration even with nested parens in the type note', () => {
+    expect(
+      cleanVipsExifString('1 (Internal error (unknown value 1), Short, 1 components, 2 bytes)'),
+    ).toBe('1')
+  })
 })
 
 describe('mapVipsFieldsToMeta', () => {

@@ -104,8 +104,9 @@ export function mapVipsFieldsToMeta(
 
 /** libvips EXIF get_string often looks like: "TestCam (TestCam, ASCII, 8 components, 8 bytes)" */
 export function cleanVipsExifString(raw: string): string {
-  const m = /^(.*) \([^()]*, [^()]*, \d+ components, \d+ bytes\)$/.exec(raw)
-  return m ? m[1] : raw
+  if (!/, \d+ components, \d+ bytes\)$/.test(raw)) return raw
+  const idx = raw.indexOf(' (')
+  return idx > 0 ? raw.slice(0, idx) : raw
 }
 
 function readImageField(image: any, name: string): string | undefined {
