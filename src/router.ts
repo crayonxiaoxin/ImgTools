@@ -6,6 +6,7 @@ const routes = [
   { path: '/convert', name: 'convert', component: () => import('@/views/ModePage.vue') },
   { path: '/favicon', name: 'favicon', component: () => import('@/views/ModePage.vue') },
   { path: '/pdf', name: 'pdf', component: () => import('@/views/ModePage.vue') },
+  { path: '/strip', name: 'strip', component: () => import('@/views/ModePage.vue') },
 ]
 
 const router = createRouter({
