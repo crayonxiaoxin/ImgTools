@@ -8,10 +8,10 @@ export default {
   sidebar: {
     mode: '模式',
     compress: '壓縮',
-    convert: '轉換',
-    favicon: 'Favicon',
-    pdf: 'PDF',
-    strip: '去除中繼資料',
+    convert: '格式轉換',
+    favicon: 'Favicon 製作',
+    pdf: 'PDF 轉圖片',
+    strip: '隱私清除',
   },
   dropzone: {
     prompt: '將圖片拖曳到此處',

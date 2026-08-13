@@ -8,10 +8,10 @@ export default {
   sidebar: {
     mode: 'Mode',
     compress: 'Compress',
-    convert: 'Convert',
-    favicon: 'Favicon',
-    pdf: 'PDF',
-    strip: 'Strip metadata',
+    convert: 'Convert Format',
+    favicon: 'Make Favicon',
+    pdf: 'PDF to Image',
+    strip: 'Privacy Clean',
   },
   dropzone: {
     prompt: 'Drop images here',

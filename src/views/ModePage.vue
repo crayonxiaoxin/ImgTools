@@ -47,13 +47,15 @@ watch(() => route.name, (name) => {
     <div class="app-body">
       <Sidebar />
       <main class="main-area">
-        <div v-if="showEngineHint" class="engine-hint" role="status">
-          <span class="engine-spinner"></span>
-          <div>
-            <p class="engine-title">{{ t('status.engineHintTitle') }}</p>
-            <p class="engine-desc">{{ t('status.engineHintDesc') }}</p>
+        <Transition name="engine-hint">
+          <div v-if="showEngineHint" class="engine-hint" role="status">
+            <span class="engine-spinner" aria-hidden="true"></span>
+            <div>
+              <p class="engine-title">{{ t('status.engineHintTitle') }}</p>
+              <p class="engine-desc">{{ t('status.engineHintDesc') }}</p>
+            </div>
           </div>
-        </div>
+        </Transition>
         <FaviconPanel v-if="isFaviconMode" />
         <PdfPanel v-else-if="store.activeMode === 'pdf'" />
         <template v-else>
@@ -201,6 +203,7 @@ button, input, select, textarea {
   min-height: 0;
 }
 .main-area {
+  position: relative;
   flex: 1;
   padding: var(--space-4);
   overflow-y: auto;
@@ -220,14 +223,30 @@ button, input, select, textarea {
 }
 
 .engine-hint {
+  position: absolute;
+  top: var(--space-4);
+  left: var(--space-4);
+  right: var(--space-4);
+  z-index: 20;
   display: flex;
   align-items: flex-start;
   gap: var(--space-2);
-  margin-bottom: var(--space-3);
   padding: 12px 14px;
   border: 1px solid color-mix(in srgb, var(--primary) 22%, var(--border));
   border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--primary-bg) 65%, var(--bg-surface));
+  background: color-mix(in srgb, var(--bg-surface) 88%, var(--primary-bg));
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-soft), 0 8px 24px rgba(15, 23, 42, 0.06);
+  pointer-events: none;
+}
+.engine-hint-enter-active,
+.engine-hint-leave-active {
+  transition: opacity var(--ease), transform var(--ease);
+}
+.engine-hint-enter-from,
+.engine-hint-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
 }
 .engine-spinner {
   width: 14px;
@@ -264,6 +283,11 @@ button, input, select, textarea {
   }
   .main-area {
     padding: var(--space-2);
+  }
+  .engine-hint {
+    top: var(--space-2);
+    left: var(--space-2);
+    right: var(--space-2);
   }
   .content-panels {
     flex-direction: column;
