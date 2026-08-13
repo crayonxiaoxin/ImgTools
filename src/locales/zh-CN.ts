@@ -89,6 +89,8 @@ export default {
     gpsYes: '含 GPS',
     showGps: '显示坐标',
     hideGps: '隐藏坐标',
+    present: '有',
+    afterPending: '处理完成后显示',
     unsupported: '该格式暂不支持去元数据',
     fields: {
       Make: '相机制造商',

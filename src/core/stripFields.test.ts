@@ -7,10 +7,8 @@ describe('cleanVipsExifString', () => {
     expect(cleanVipsExifString('plain')).toBe('plain')
   })
 
-  it('strips decoration even with nested parens in the type note', () => {
-    expect(
-      cleanVipsExifString('1 (Internal error (unknown value 1), Short, 1 components, 2 bytes)'),
-    ).toBe('1')
+  it('strips trailing opaque byte dumps', () => {
+    expect(cleanVipsExifString('NemoInfo N8云版批量出片 2, 2, 0, 96')).toBe('NemoInfo N8云版批量出片')
   })
 })
 

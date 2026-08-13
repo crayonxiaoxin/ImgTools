@@ -89,6 +89,8 @@ export default {
     gpsYes: 'Contains GPS',
     showGps: 'Show coordinates',
     hideGps: 'Hide coordinates',
+    present: 'Present',
+    afterPending: 'Shown after processing',
     unsupported: 'This format does not support metadata stripping',
     fields: {
       Make: 'Camera make',

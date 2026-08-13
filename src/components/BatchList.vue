@@ -63,14 +63,15 @@ const MetaList = defineComponent({
         'ul',
         { class: 'meta-fields' },
         props.fields.map((field) => {
-          const muted = props.side === 'before' && !!props.afterKeys && !props.afterKeys.has(field.key)
+          const cleared = props.side === 'before' && !!props.afterKeys && !props.afterKeys.has(field.key)
+          const presenceOnly = !field.value && !field.sensitive
           let valueNode
           if (field.sensitive) {
-            valueNode = h('span', { class: 'meta-value-wrap' }, [
+            valueNode = h('div', { class: 'meta-value-wrap' }, [
               h(
                 'span',
                 {
-                  class: 'meta-value',
+                  class: ['meta-value', { 'is-secret': !props.revealed }],
                   title: props.revealed ? field.value : undefined,
                 },
                 props.revealed ? (field.value || '—') : ti('strip.gpsYes'),
@@ -79,25 +80,25 @@ const MetaList = defineComponent({
                 'button',
                 {
                   type: 'button',
-                  class: 'link-btn gps-toggle',
+                  class: 'meta-ghost-btn',
                   onClick: () => emit('toggle-gps'),
                 },
                 props.revealed ? ti('strip.hideGps') : ti('strip.showGps'),
               ),
             ])
+          } else if (presenceOnly) {
+            valueNode = h('span', { class: 'meta-chip' }, ti('strip.present'))
           } else {
-            valueNode = h('span', { class: 'meta-value-wrap' }, [
-              h(
-                'span',
-                {
-                  class: 'meta-value',
-                  title: field.value || undefined,
-                },
-                field.value || '—',
-              ),
-            ])
+            valueNode = h(
+              'span',
+              {
+                class: 'meta-value',
+                title: field.value || undefined,
+              },
+              field.value,
+            )
           }
-          return h('li', { key: field.key, class: ['meta-field', { muted }] }, [
+          return h('li', { key: field.key, class: ['meta-field', { cleared }] }, [
             h('span', { class: 'meta-label' }, ti(field.labelKey)),
             valueNode,
           ])
@@ -249,7 +250,8 @@ function resultText(item: ImageItem): string | null {
                     <button
                       v-if="store.activeMode === 'strip'"
                       type="button"
-                      class="link-btn"
+                      class="meta-toggle"
+                      :class="{ open: expandedMeta[item.id] }"
                       @click="toggleMeta(item.id)"
                     >
                       {{ t('strip.meta') }}
@@ -268,8 +270,10 @@ function resultText(item: ImageItem): string | null {
               >
                 <td colspan="7">
                   <div class="meta-compare">
-                    <div class="meta-col">
-                      <h4>{{ t('strip.before') }}</h4>
+                    <section class="meta-col">
+                      <header class="meta-col-head">
+                        <span class="meta-col-title">{{ t('strip.before') }}</span>
+                      </header>
                       <MetaList
                         :fields="item.metaBefore"
                         side="before"
@@ -277,17 +281,17 @@ function resultText(item: ImageItem): string | null {
                         :revealed="!!revealedGps[item.id]"
                         @toggle-gps="toggleGps(item.id)"
                       />
-                    </div>
-                    <div class="meta-col">
-                      <h4>
-                        {{ t('strip.after') }}
+                    </section>
+                    <section class="meta-col">
+                      <header class="meta-col-head">
+                        <span class="meta-col-title">{{ t('strip.after') }}</span>
                         <span
                           v-if="item.metaAfter && item.metaBefore && clearedCount(item) > 0"
                           class="badge"
                         >
                           {{ t('strip.cleared', { n: clearedCount(item) }) }}
                         </span>
-                      </h4>
+                      </header>
                       <template v-if="item.status === 'done'">
                         <MetaList
                           :fields="item.metaAfter"
@@ -296,8 +300,8 @@ function resultText(item: ImageItem): string | null {
                           @toggle-gps="toggleGps(item.id)"
                         />
                       </template>
-                      <p v-else class="hint">—</p>
-                    </div>
+                      <p v-else class="meta-empty">{{ t('strip.afterPending') }}</p>
+                    </section>
                   </div>
                 </td>
               </tr>
@@ -341,7 +345,8 @@ function resultText(item: ImageItem): string | null {
                 <button
                   v-if="store.activeMode === 'strip'"
                   type="button"
-                  class="link-btn"
+                  class="meta-toggle"
+                  :class="{ open: expandedMeta[item.id] }"
                   @click="toggleMeta(item.id)"
                 >
                   {{ t('strip.meta') }}
@@ -358,8 +363,10 @@ function resultText(item: ImageItem): string | null {
             v-if="store.activeMode === 'strip' && expandedMeta[item.id]"
             class="meta-compare"
           >
-            <div class="meta-col">
-              <h4>{{ t('strip.before') }}</h4>
+            <section class="meta-col">
+              <header class="meta-col-head">
+                <span class="meta-col-title">{{ t('strip.before') }}</span>
+              </header>
               <MetaList
                 :fields="item.metaBefore"
                 side="before"
@@ -367,17 +374,17 @@ function resultText(item: ImageItem): string | null {
                 :revealed="!!revealedGps[item.id]"
                 @toggle-gps="toggleGps(item.id)"
               />
-            </div>
-            <div class="meta-col">
-              <h4>
-                {{ t('strip.after') }}
+            </section>
+            <section class="meta-col">
+              <header class="meta-col-head">
+                <span class="meta-col-title">{{ t('strip.after') }}</span>
                 <span
                   v-if="item.metaAfter && item.metaBefore && clearedCount(item) > 0"
                   class="badge"
                 >
                   {{ t('strip.cleared', { n: clearedCount(item) }) }}
                 </span>
-              </h4>
+              </header>
               <template v-if="item.status === 'done'">
                 <MetaList
                   :fields="item.metaAfter"
@@ -386,8 +393,8 @@ function resultText(item: ImageItem): string | null {
                   @toggle-gps="toggleGps(item.id)"
                 />
               </template>
-              <p v-else class="hint">—</p>
-            </div>
+              <p v-else class="meta-empty">{{ t('strip.afterPending') }}</p>
+            </section>
           </div>
         </div>
       </div>
@@ -614,66 +621,82 @@ function resultText(item: ImageItem): string | null {
   gap: var(--space-2);
   flex-wrap: wrap;
 }
-.link-btn,
-:deep(.link-btn) {
-  border: none;
-  background: none;
-  padding: 0;
-  margin: 0;
-  font: inherit;
+.meta-toggle {
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
   font-size: var(--font-caption);
   font-weight: 500;
-  color: var(--primary);
   cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  transition: background var(--ease), border-color var(--ease), color var(--ease);
 }
-.link-btn:hover,
-:deep(.link-btn:hover) {
-  color: var(--primary-hover);
+.meta-toggle:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+  background: var(--bg-hover);
+}
+.meta-toggle.open {
+  border-color: color-mix(in srgb, var(--primary) 35%, var(--border));
+  background: var(--primary-bg);
+  color: var(--primary-text);
 }
 .meta-row td {
-  padding: 0 var(--space-3) var(--space-2) !important;
+  padding: 0 var(--space-3) var(--space-3) !important;
   background: var(--bg-faint);
   vertical-align: top;
 }
 .meta-compare {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--space-3);
-  padding: var(--space-2);
+  gap: 0;
+  overflow: hidden;
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   background: var(--bg-surface);
 }
-.meta-col h4 {
+.meta-col {
+  min-width: 0;
+  padding: var(--space-2) var(--space-3) var(--space-3);
+}
+.meta-col + .meta-col {
+  border-left: 1px solid var(--border);
+}
+.meta-col-head {
   display: flex;
   align-items: center;
   gap: var(--space-1);
   flex-wrap: wrap;
-  margin: 0 0 var(--space-1);
-  font-size: var(--font-caption);
+  margin: 0 0 var(--space-2);
+  padding-bottom: var(--space-1);
+  border-bottom: 1px solid var(--border);
+}
+.meta-col-title {
+  font-size: 11px;
   font-weight: 600;
-  color: var(--text-secondary);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
 }
 .badge {
-  display: inline-block;
-  padding: 1px 6px;
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 7px;
   border-radius: 999px;
   font-size: 10px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--success);
   background: var(--tag-done-bg);
 }
-.meta-compare .hint {
+:deep(.meta-empty),
+.meta-empty {
   margin: 0;
   font-size: var(--font-caption);
   color: var(--text-muted);
-}
-:deep(.meta-empty) {
-  margin: 0;
-  font-size: var(--font-caption);
-  color: var(--text-muted);
+  line-height: 1.5;
 }
 :deep(.meta-fields) {
   list-style: none;
@@ -681,45 +704,89 @@ function resultText(item: ImageItem): string | null {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 :deep(.meta-field) {
   display: grid;
-  grid-template-columns: minmax(72px, 30%) 1fr;
-  gap: var(--space-1);
-  align-items: baseline;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: var(--space-2);
+  align-items: start;
+  padding: 6px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
   font-size: var(--font-caption);
-  line-height: 1.4;
+  line-height: 1.45;
 }
-:deep(.meta-field.muted) {
-  opacity: 0.45;
+:deep(.meta-field:last-child) {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+:deep(.meta-field.cleared) {
+  opacity: 0.55;
+}
+:deep(.meta-field.cleared .meta-label),
+:deep(.meta-field.cleared .meta-value),
+:deep(.meta-field.cleared .meta-chip) {
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--text-muted) 55%, transparent);
 }
 :deep(.meta-label) {
   color: var(--text-muted);
   font-weight: 500;
+  padding-top: 1px;
 }
 :deep(.meta-value-wrap) {
   min-width: 0;
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
-  gap: 4px var(--space-1);
+  align-items: center;
+  gap: 6px;
 }
 :deep(.meta-value) {
   color: var(--text);
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
-  max-width: 100%;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  white-space: normal;
+  word-break: break-word;
 }
-:deep(.gps-toggle) {
-  flex-shrink: 0;
+:deep(.meta-value.is-secret) {
+  color: var(--text-secondary);
+}
+:deep(.meta-chip) {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--bg-dim);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 500;
+}
+:deep(.meta-ghost-btn) {
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--primary);
+  cursor: pointer;
+}
+:deep(.meta-ghost-btn:hover) {
+  color: var(--primary-hover);
 }
 
 @media (max-width: 900px) {
   .meta-compare {
     grid-template-columns: 1fr;
+  }
+  .meta-col + .meta-col {
+    border-left: none;
+    border-top: 1px solid var(--border);
   }
 }
 

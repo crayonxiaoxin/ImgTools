@@ -89,6 +89,8 @@ export default {
     gpsYes: '含 GPS',
     showGps: '顯示座標',
     hideGps: '隱藏座標',
+    present: '有',
+    afterPending: '處理完成後顯示',
     unsupported: '該格式暫不支援去除中繼資料',
     fields: {
       Make: '相機製造商',
