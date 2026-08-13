@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { ImageFormat } from '@/core/formats'
 import { detectFormat, FORMATS } from '@/core/formats'
+import type { MetaField } from '@/core/strip'
 
 export interface ImageItem {
   id: string
@@ -24,17 +25,6 @@ export interface ImageItem {
   faviconConfig?: FaviconConfig
   metaBefore?: MetaField[]
   metaAfter?: MetaField[]
-}
-
-export type MetaGroup = 'exif' | 'xmp' | 'iptc' | 'icc' | 'other'
-
-export interface MetaField {
-  key: string
-  /** i18n key under `strip.fields.*` or a literal fallback label key */
-  labelKey: string
-  value?: string
-  group: MetaGroup
-  sensitive?: boolean
 }
 
 export type AppMode = 'compress' | 'convert' | 'favicon' | 'pdf' | 'strip'

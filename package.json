@@ -8,7 +8,8 @@
     "postinstall": "node scripts/sync-wasm.mjs",
     "dev": "npm run sync-wasm && vite",
     "build": "npm run sync-wasm && vue-tsc --noEmit && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run"
   },
   "dependencies": {
     "@fontsource/plus-jakarta-sans": "^5.3.0",
@@ -25,6 +26,7 @@
     "typescript": "^5.6",
     "vite": "^6.0",
     "vite-plugin-pwa": "^1.3.0",
+    "vitest": "^4.1.10",
     "vue-tsc": "^2.2"
   }
 }
