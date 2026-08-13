@@ -1,7 +1,7 @@
 # Strip Metadata Mode — Design Spec
 
 **Date:** 2026-08-13  
-**Status:** Draft for user review (design verbally approved; implement only after this doc is accepted)  
+**Status:** Accepted  
 **Mode id / route:** `strip` / `/strip`
 
 ## Goal

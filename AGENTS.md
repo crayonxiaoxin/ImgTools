@@ -82,11 +82,12 @@ Cross-Origin-Embedder-Policy: require-corp
 ### WASM 初始化
 `core/vips.ts` 使用 promise 守卫防止并发初始化，30 秒超时，支持事件监听器（`onVipsReady`）。
 
-### 四模式架构
+### 五模式架构
 - **压缩模式**: 质量滑块 + 有损/无损 + 输出格式 + 自动降质（确保文件真正变小）
 - **转换模式**: 格式网格按钮，使用 quality=100 最大质量编码
 - **Favicon 模式**: 交互裁剪 + 多尺寸 PNG 输出 + ICO 打包
 - **PDF 模式**: PDF.js 逐页渲染 → wasm-vips 编码，支持长图/逐页 + 精度可调
+- **去元数据模式**: 清除 EXIF/GPS/XMP/IPTC（默认保留 ICC），批列表展示清理前后元数据
 
 ### 响应式布局
 桌面端三栏（侧边栏 + 主区域 + 参数面板），移动端 (<768px) 侧边栏变为底部导航栏，内容垂直堆叠。
@@ -116,6 +117,7 @@ PNG 有损压缩通过调色板量化（palette quantization）实现。
 - `/convert` — 转换模式
 - `/favicon` — Favicon 模式
 - `/pdf` — PDF 模式
+- `/strip` — 去元数据模式
 
 ## 常用命令
 
