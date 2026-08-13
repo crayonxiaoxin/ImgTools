@@ -2,7 +2,10 @@ import { defineConfig, type Plugin } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { fileURLToPath, URL } from 'node:url'
 import { execFileSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 import { VitePWA } from 'vite-plugin-pwa'
+
+const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf-8')) as { version: string }
 
 /** Ensure public/assets WASM binaries stay in sync with node_modules. */
 function syncWasmPlugin(): Plugin {
@@ -18,11 +21,22 @@ function syncWasmPlugin(): Plugin {
   }
 }
 
+/** Inject package version into index.html placeholders. */
+function htmlVersionPlugin(): Plugin {
+  return {
+    name: 'html-app-version',
+    transformIndexHtml(html) {
+      return html.replaceAll('%APP_VERSION%', pkg.version)
+    },
+  }
+}
+
 export default defineConfig({
   base: process.env.GITHUB_PAGES ? '/img-tools/' : '/',
   plugins: [
     vue(),
     syncWasmPlugin(),
+    htmlVersionPlugin(),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['logo.svg', 'favicon.svg'],

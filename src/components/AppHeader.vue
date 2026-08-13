@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { version } from '../../package.json'
 
 const { t, locale } = useI18n()
 
@@ -9,6 +10,8 @@ const locales: Record<string, string> = {
   'zh-TW': '繁體中文',
   'en': 'English',
 }
+
+const logoUrl = `/logo.svg?v=${version}`
 
 const isDark = ref(document.documentElement.classList.contains('dark'))
 
@@ -27,7 +30,7 @@ function toggleTheme() {
 <template>
   <header class="app-header">
     <div class="brand">
-      <img src="/logo.svg?v=2" alt="ImgTools" class="logo-icon" />
+      <img :src="logoUrl" alt="ImgTools" class="logo-icon" />
       <div class="brand-text">
         <h1 class="logo">ImgTools</h1>
         <p class="tagline">{{ t('app.tagline') }}</p>
@@ -69,7 +72,13 @@ function toggleTheme() {
   gap: var(--space-2);
   min-width: 0;
 }
-.logo-icon { width: 28px; height: 28px; flex-shrink: 0; }
+.logo-icon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: block;
+  border-radius: 8px;
+}
 .brand-text { min-width: 0; }
 .logo {
   font-size: var(--font-display);
