@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, defineComponent, h, ref, type PropType } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useImageStore, type ImageItem } from '@/stores/imageStore'
 import { useImageProcessor } from '@/composables/useImageProcessor'
 import { useBatchExport } from '@/composables/useBatchExport'
 import { useToast } from '@/composables/useToast'
 import { formatSize } from '@/utils/format'
+import type { MetaField } from '@/core/strip'
 
 const { t } = useI18n()
 const store = useImageStore()
@@ -19,6 +20,93 @@ const statusKey: Record<string, string> = {
 const { processAll: runProcessAll } = useImageProcessor()
 const { downloadSingle, downloadAllAsZip, downloadAllIndividual } = useBatchExport()
 const toast = useToast()
+
+const expandedMeta = ref<Record<string, boolean>>({})
+const revealedGps = ref<Record<string, boolean>>({})
+
+function toggleMeta(id: string) {
+  expandedMeta.value[id] = !expandedMeta.value[id]
+}
+
+function toggleGps(id: string) {
+  revealedGps.value[id] = !revealedGps.value[id]
+}
+
+function clearedCount(item: ImageItem): number {
+  return Math.max(0, (item.metaBefore?.length ?? 0) - (item.metaAfter?.length ?? 0))
+}
+
+function afterKeySet(item: ImageItem): Set<string> | null {
+  if (!item.metaAfter) return null
+  return new Set(item.metaAfter.map(f => f.key))
+}
+
+const MetaList = defineComponent({
+  name: 'MetaList',
+  props: {
+    fields: { type: Array as PropType<MetaField[] | undefined>, default: undefined },
+    itemId: { type: String, required: true },
+    side: { type: String as PropType<'before' | 'after'>, required: true },
+    afterKeys: { type: Object as PropType<Set<string> | null>, default: null },
+    revealed: { type: Boolean, default: false },
+  },
+  emits: ['toggle-gps'],
+  setup(props, { emit }) {
+    const { t: ti } = useI18n()
+    return () => {
+      if (props.fields === undefined) {
+        return h('p', { class: 'meta-empty' }, ti('strip.unread'))
+      }
+      if (props.fields.length === 0) {
+        return h('p', { class: 'meta-empty' }, ti('strip.none'))
+      }
+      return h(
+        'ul',
+        { class: 'meta-fields' },
+        props.fields.map((field) => {
+          const muted = props.side === 'before' && !!props.afterKeys && !props.afterKeys.has(field.key)
+          let valueNode
+          if (field.sensitive) {
+            valueNode = h('span', { class: 'meta-value-wrap' }, [
+              h(
+                'span',
+                {
+                  class: 'meta-value',
+                  title: props.revealed ? field.value : undefined,
+                },
+                props.revealed ? (field.value || '—') : ti('strip.gpsYes'),
+              ),
+              h(
+                'button',
+                {
+                  type: 'button',
+                  class: 'link-btn gps-toggle',
+                  onClick: () => emit('toggle-gps'),
+                },
+                props.revealed ? ti('strip.hideGps') : ti('strip.showGps'),
+              ),
+            ])
+          } else {
+            valueNode = h('span', { class: 'meta-value-wrap' }, [
+              h(
+                'span',
+                {
+                  class: 'meta-value',
+                  title: field.value || undefined,
+                },
+                field.value || '—',
+              ),
+            ])
+          }
+          return h('li', { key: field.key, class: ['meta-field', { muted }] }, [
+            h('span', { class: 'meta-label' }, ti(field.labelKey)),
+            valueNode,
+          ])
+        }),
+      )
+    }
+  },
+})
 
 const finishedCount = computed(() =>
   store.images.filter(i => i.status === 'done' || i.status === 'error').length
@@ -129,37 +217,90 @@ function resultText(item: ImageItem): string | null {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="item in store.images" :key="item.id">
-              <td class="thumb-cell">
-                <img v-if="item.previewUrl" :src="item.previewUrl" :alt="item.name" class="thumb" />
-              </td>
-              <td :title="item.name">{{ item.name }}</td>
-              <td>{{ formatSize(item.size) }}</td>
-              <td>{{ formatLine(item) }}</td>
-              <td>
-                <template v-if="item.resultSize">
-                  <span v-if="resultText(item)" class="rate">{{ resultText(item) }}</span>
-                  <span v-else class="rate-negative">{{ t('batch.uncompressed') }}</span>
-                </template>
-                <span v-else>-</span>
-              </td>
-            <td>
-              <span
-                class="status-tag"
-                :class="item.status"
-                :title="item.status === 'error' ? item.errorMessage : undefined"
+            <template v-for="item in store.images" :key="item.id">
+              <tr>
+                <td class="thumb-cell">
+                  <img v-if="item.previewUrl" :src="item.previewUrl" :alt="item.name" class="thumb" />
+                </td>
+                <td :title="item.name">{{ item.name }}</td>
+                <td>{{ formatSize(item.size) }}</td>
+                <td>{{ formatLine(item) }}</td>
+                <td>
+                  <template v-if="item.resultSize">
+                    <span v-if="resultText(item)" class="rate">{{ resultText(item) }}</span>
+                    <span v-else class="rate-negative">{{ t('batch.uncompressed') }}</span>
+                  </template>
+                  <span v-else>-</span>
+                </td>
+                <td>
+                  <span
+                    class="status-tag"
+                    :class="item.status"
+                    :title="item.status === 'error' ? item.errorMessage : undefined"
+                  >
+                    {{ t(statusKey[item.status]) }}
+                  </span>
+                </td>
+                <td>
+                  <div class="action-cell">
+                    <button
+                      v-if="store.activeMode === 'strip'"
+                      type="button"
+                      class="link-btn"
+                      @click="toggleMeta(item.id)"
+                    >
+                      {{ t('strip.meta') }}
+                    </button>
+                    <button
+                      v-if="item.status === 'done'"
+                      class="btn btn-sm"
+                      @click="downloadSingle(item.id)"
+                    >{{ t('batch.download') }}</button>
+                  </div>
+                </td>
+              </tr>
+              <tr
+                v-if="store.activeMode === 'strip' && expandedMeta[item.id]"
+                class="meta-row"
               >
-                {{ t(statusKey[item.status]) }}
-              </span>
-            </td>
-              <td>
-                <button
-                  v-if="item.status === 'done'"
-                  class="btn btn-sm"
-                  @click="downloadSingle(item.id)"
-                >{{ t('batch.download') }}</button>
-              </td>
-            </tr>
+                <td colspan="7">
+                  <div class="meta-compare">
+                    <div class="meta-col">
+                      <h4>{{ t('strip.before') }}</h4>
+                      <MetaList
+                        :fields="item.metaBefore"
+                        :item-id="item.id"
+                        side="before"
+                        :after-keys="afterKeySet(item)"
+                        :revealed="!!revealedGps[item.id]"
+                        @toggle-gps="toggleGps(item.id)"
+                      />
+                    </div>
+                    <div class="meta-col">
+                      <h4>
+                        {{ t('strip.after') }}
+                        <span
+                          v-if="item.metaAfter && item.metaBefore"
+                          class="badge"
+                        >
+                          {{ t('strip.cleared', { n: clearedCount(item) }) }}
+                        </span>
+                      </h4>
+                      <template v-if="item.status === 'done'">
+                        <MetaList
+                          :fields="item.metaAfter"
+                          :item-id="item.id"
+                          side="after"
+                          :revealed="!!revealedGps[item.id]"
+                          @toggle-gps="toggleGps(item.id)"
+                        />
+                      </template>
+                      <p v-else class="hint">—</p>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            </template>
           </tbody>
         </table>
       </div>
@@ -172,33 +313,82 @@ function resultText(item: ImageItem): string | null {
           class="batch-card"
           :class="item.status"
         >
-          <img v-if="item.previewUrl" :src="item.previewUrl" :alt="item.name" class="card-thumb" />
-          <div class="card-body">
-            <div class="card-top">
-              <span class="card-name" :title="item.name">{{ item.name }}</span>
-              <span
-                class="status-tag"
-                :class="item.status"
-                :title="item.status === 'error' ? item.errorMessage : undefined"
-              >
-                {{ t(statusKey[item.status]) }}
-              </span>
-            </div>
-            <div class="card-meta">
-              <span>{{ formatSize(item.size) }}</span>
-              <span class="dot">·</span>
-              <span>{{ formatLine(item) }}</span>
-              <template v-if="item.resultSize">
+          <div class="card-main">
+            <img v-if="item.previewUrl" :src="item.previewUrl" :alt="item.name" class="card-thumb" />
+            <div class="card-body">
+              <div class="card-top">
+                <span class="card-name" :title="item.name">{{ item.name }}</span>
+                <span
+                  class="status-tag"
+                  :class="item.status"
+                  :title="item.status === 'error' ? item.errorMessage : undefined"
+                >
+                  {{ t(statusKey[item.status]) }}
+                </span>
+              </div>
+              <div class="card-meta">
+                <span>{{ formatSize(item.size) }}</span>
                 <span class="dot">·</span>
-                <span v-if="resultText(item)" class="rate">{{ resultText(item) }}</span>
-                <span v-else class="rate-negative">{{ t('batch.uncompressed') }}</span>
-              </template>
+                <span>{{ formatLine(item) }}</span>
+                <template v-if="item.resultSize">
+                  <span class="dot">·</span>
+                  <span v-if="resultText(item)" class="rate">{{ resultText(item) }}</span>
+                  <span v-else class="rate-negative">{{ t('batch.uncompressed') }}</span>
+                </template>
+              </div>
+              <div class="card-actions">
+                <button
+                  v-if="store.activeMode === 'strip'"
+                  type="button"
+                  class="link-btn"
+                  @click="toggleMeta(item.id)"
+                >
+                  {{ t('strip.meta') }}
+                </button>
+                <button
+                  v-if="item.status === 'done'"
+                  class="btn btn-sm card-dl"
+                  @click="downloadSingle(item.id)"
+                >{{ t('batch.download') }}</button>
+              </div>
             </div>
-            <button
-              v-if="item.status === 'done'"
-              class="btn btn-sm card-dl"
-              @click="downloadSingle(item.id)"
-            >{{ t('batch.download') }}</button>
+          </div>
+          <div
+            v-if="store.activeMode === 'strip' && expandedMeta[item.id]"
+            class="meta-compare"
+          >
+            <div class="meta-col">
+              <h4>{{ t('strip.before') }}</h4>
+              <MetaList
+                :fields="item.metaBefore"
+                :item-id="item.id"
+                side="before"
+                :after-keys="afterKeySet(item)"
+                :revealed="!!revealedGps[item.id]"
+                @toggle-gps="toggleGps(item.id)"
+              />
+            </div>
+            <div class="meta-col">
+              <h4>
+                {{ t('strip.after') }}
+                <span
+                  v-if="item.metaAfter && item.metaBefore"
+                  class="badge"
+                >
+                  {{ t('strip.cleared', { n: clearedCount(item) }) }}
+                </span>
+              </h4>
+              <template v-if="item.status === 'done'">
+                <MetaList
+                  :fields="item.metaAfter"
+                  :item-id="item.id"
+                  side="after"
+                  :revealed="!!revealedGps[item.id]"
+                  @toggle-gps="toggleGps(item.id)"
+                />
+              </template>
+              <p v-else class="hint">—</p>
+            </div>
           </div>
         </div>
       </div>
@@ -419,6 +609,121 @@ function resultText(item: ImageItem): string | null {
   font-weight: 500;
 }
 
+.action-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.link-btn,
+:deep(.link-btn) {
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  font-size: var(--font-caption);
+  font-weight: 500;
+  color: var(--primary);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.link-btn:hover,
+:deep(.link-btn:hover) {
+  color: var(--primary-hover);
+}
+.meta-row td {
+  padding: 0 var(--space-3) var(--space-2) !important;
+  background: var(--bg-faint);
+  vertical-align: top;
+}
+.meta-compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+  padding: var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+}
+.meta-col h4 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+  margin: 0 0 var(--space-1);
+  font-size: var(--font-caption);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--success);
+  background: var(--tag-done-bg);
+}
+.meta-compare .hint {
+  margin: 0;
+  font-size: var(--font-caption);
+  color: var(--text-muted);
+}
+:deep(.meta-empty) {
+  margin: 0;
+  font-size: var(--font-caption);
+  color: var(--text-muted);
+}
+:deep(.meta-fields) {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+:deep(.meta-field) {
+  display: grid;
+  grid-template-columns: minmax(72px, 30%) 1fr;
+  gap: var(--space-1);
+  align-items: baseline;
+  font-size: var(--font-caption);
+  line-height: 1.4;
+}
+:deep(.meta-field.muted) {
+  opacity: 0.45;
+}
+:deep(.meta-label) {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+:deep(.meta-value-wrap) {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px var(--space-1);
+}
+:deep(.meta-value) {
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  max-width: 100%;
+}
+:deep(.gps-toggle) {
+  flex-shrink: 0;
+}
+
+@media (max-width: 900px) {
+  .meta-compare {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Mobile cards — hidden on desktop */
 .batch-cards {
   display: none;
@@ -453,11 +758,16 @@ function resultText(item: ImageItem): string | null {
   }
   .batch-card {
     display: flex;
+    flex-direction: column;
     gap: var(--space-2);
     padding: var(--space-2);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     background: var(--bg-faint);
+  }
+  .card-main {
+    display: flex;
+    gap: var(--space-2);
   }
   .batch-card.processing {
     border-color: var(--primary);
@@ -500,9 +810,18 @@ function resultText(item: ImageItem): string | null {
     color: var(--text-muted);
   }
   .dot { opacity: 0.5; }
+  .card-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+    margin-top: 2px;
+  }
   .card-dl {
     align-self: flex-start;
-    margin-top: 2px;
+  }
+  .batch-card .meta-compare {
+    margin-top: var(--space-1);
   }
 }
 </style>
