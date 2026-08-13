@@ -22,9 +22,22 @@ export interface ImageItem {
   }
   faviconResults?: FaviconResult[]
   faviconConfig?: FaviconConfig
+  metaBefore?: MetaField[]
+  metaAfter?: MetaField[]
 }
 
-export type AppMode = 'compress' | 'convert' | 'favicon' | 'pdf'
+export type MetaGroup = 'exif' | 'xmp' | 'iptc' | 'icc' | 'other'
+
+export interface MetaField {
+  key: string
+  /** i18n key under `strip.fields.*` or a literal fallback label key */
+  labelKey: string
+  value?: string
+  group: MetaGroup
+  sensitive?: boolean
+}
+
+export type AppMode = 'compress' | 'convert' | 'favicon' | 'pdf' | 'strip'
 
 export interface FaviconResult {
   url: string
@@ -49,6 +62,7 @@ export const useImageStore = defineStore('images', () => {
   const processing = ref(false)
   const vipsReady = ref(false)
   const vipsLoading = ref(true)
+  const stripConfig = ref({ removeIcc: false })
 
   const selectedFormats = computed(() => {
     const set = new Set<ImageFormat>()
@@ -136,6 +150,20 @@ export const useImageStore = defineStore('images', () => {
     item.status = 'done'
   }
 
+  function setStripConfig(partial: Partial<{ removeIcc: boolean }>) {
+    Object.assign(stripConfig.value, partial)
+  }
+
+  function setMetaBefore(id: string, fields: MetaField[]) {
+    const item = images.value.find(i => i.id === id)
+    if (item) item.metaBefore = fields
+  }
+
+  function setMetaAfter(id: string, fields: MetaField[]) {
+    const item = images.value.find(i => i.id === id)
+    if (item) item.metaAfter = fields
+  }
+
   function setMode(mode: AppMode) {
     activeMode.value = mode
     images.value.forEach(item => {
@@ -148,6 +176,8 @@ export const useImageStore = defineStore('images', () => {
         item.faviconResults.forEach(r => URL.revokeObjectURL(r.url))
         item.faviconResults = undefined
       }
+      item.metaBefore = undefined
+      item.metaAfter = undefined
       item.config.quality = 80
       item.config.lossless = false
       item.config.maxWidth = undefined
@@ -155,12 +185,13 @@ export const useImageStore = defineStore('images', () => {
         item.config.targetFormat = (item.format && FORMATS[item.format].writable ? item.format : 'png')
       }
     })
+    stripConfig.value = { removeIcc: false }
   }
 
   return {
-    images, activeMode, processing, vipsReady, vipsLoading, selectedFormats,
+    images, activeMode, processing, vipsReady, vipsLoading, selectedFormats, stripConfig,
     addImages, removeImage, clearAll, updateConfig,
     setResult, setError, setProcessing, setVipsReady, setVipsLoading, setMode,
-    setFaviconResults,
+    setFaviconResults, setStripConfig, setMetaBefore, setMetaAfter,
   }
 })
