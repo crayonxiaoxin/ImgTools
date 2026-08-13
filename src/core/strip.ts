@@ -1,6 +1,7 @@
 import { initVips } from './vips'
 import type { ImageFormat } from './formats'
 import { FORMATS } from './formats'
+import { stripJpegSegments } from './jpegStrip'
 
 export type MetaGroup = 'exif' | 'xmp' | 'iptc' | 'icc' | 'other'
 
@@ -133,6 +134,17 @@ function fieldsFromImage(image: any): MetaField[] {
   return mapVipsFieldsToMeta(names, (name) => readImageField(image, name))
 }
 
+function orientationNeedsAutorot(image: any): boolean {
+  const candidates = ['exif-ifd0-Orientation', 'exif-Orientation', 'orientation']
+  for (const name of candidates) {
+    const raw = readImageField(image, name)
+    if (!raw) continue
+    const n = parseInt(raw, 10)
+    if (Number.isFinite(n) && n >= 2 && n <= 8) return true
+  }
+  return false
+}
+
 export async function extractMetadata(buffer: ArrayBuffer): Promise<MetaField[]> {
   const v = await initVips()
   const image = v.Image.newFromBuffer(new Uint8Array(buffer))
@@ -141,6 +153,26 @@ export async function extractMetadata(buffer: ArrayBuffer): Promise<MetaField[]>
   } finally {
     image.delete?.()
   }
+}
+
+function buildReencodeOpts(format: ImageFormat, keep: string): string {
+  const opts: string[] = [`keep=${keep}`]
+  switch (format) {
+    case 'jpeg':
+      // Only used when autorot forces a re-encode — avoid Q=100 bloat
+      opts.push('Q=92')
+      break
+    case 'webp':
+    case 'avif':
+      opts.push('lossless=true')
+      break
+    case 'tiff':
+      opts.push('compression=deflate')
+      break
+    default:
+      break
+  }
+  return opts.join(',')
 }
 
 export async function stripMetadata(
@@ -152,10 +184,32 @@ export async function stripMetadata(
   }
 
   const v = await initVips()
-  const decoded = v.Image.newFromBuffer(new Uint8Array(buffer))
+  const bytes = new Uint8Array(buffer)
+  const decoded = v.Image.newFromBuffer(bytes)
   let image = decoded
   try {
-    // Apply EXIF orientation into pixels, then strip orientation tag via re-encode keep flags
+    const keep = options.removeIcc ? 'none' : 'icc'
+    const needsRot = orientationNeedsAutorot(decoded)
+
+    // JPEG without orientation transform: strip APP segments only (no recompress)
+    if (options.format === 'jpeg' && !needsRot) {
+      try {
+        const data = stripJpegSegments(bytes, { keepIcc: !options.removeIcc })
+        const copy = new Uint8Array(data)
+        const metaAfter = await extractMetadata(copy.buffer)
+        return {
+          data: copy,
+          format: 'jpeg',
+          width: decoded.width,
+          height: decoded.height,
+          metaAfter,
+        }
+      } catch {
+        // Fall through to re-encode if the segment parser fails
+      }
+    }
+
+    // Apply EXIF orientation into pixels when needed (or non-JPEG formats)
     image = decoded.autorot()
 
     const extMap: Record<string, string> = {
@@ -168,28 +222,8 @@ export async function stripMetadata(
     }
     const ext = extMap[options.format]
     if (!ext) throw new Error(`Unsupported output format: ${options.format}`)
-    const keep = options.removeIcc ? 'none' : 'icc'
-    // Maximize fidelity: this mode strips metadata, it is not a compressor.
-    // JPEG has no lossless path while staying JPEG → Q=100.
-    // WebP/AVIF/TIFF support true lossless re-encode.
-    const opts: string[] = [`keep=${keep}`]
-    switch (options.format) {
-      case 'jpeg':
-        opts.push('Q=100')
-        break
-      case 'webp':
-      case 'avif':
-        opts.push('lossless=true')
-        break
-      case 'tiff':
-        opts.push('compression=deflate')
-        break
-      // png/bmp: no quality knobs; re-encode without palette/quantization
-      default:
-        break
-    }
 
-    const data: Uint8Array = image.writeToBuffer(`${ext}[${opts.join(',')}]`)
+    const data: Uint8Array = image.writeToBuffer(`${ext}[${buildReencodeOpts(options.format, keep)}]`)
     const copy = new Uint8Array(data)
     const metaAfter = await extractMetadata(copy.buffer)
     return {
