@@ -169,13 +169,27 @@ export async function stripMetadata(
     const ext = extMap[options.format]
     if (!ext) throw new Error(`Unsupported output format: ${options.format}`)
     const keep = options.removeIcc ? 'none' : 'icc'
-    // High fidelity — not a compressor
-    const qualityOpts =
-      options.format === 'png' || options.format === 'bmp' || options.format === 'tiff'
-        ? `keep=${keep}`
-        : `Q=95,keep=${keep}`
+    // Maximize fidelity: this mode strips metadata, it is not a compressor.
+    // JPEG has no lossless path while staying JPEG → Q=100.
+    // WebP/AVIF/TIFF support true lossless re-encode.
+    const opts: string[] = [`keep=${keep}`]
+    switch (options.format) {
+      case 'jpeg':
+        opts.push('Q=100')
+        break
+      case 'webp':
+      case 'avif':
+        opts.push('lossless=true')
+        break
+      case 'tiff':
+        opts.push('compression=deflate')
+        break
+      // png/bmp: no quality knobs; re-encode without palette/quantization
+      default:
+        break
+    }
 
-    const data: Uint8Array = image.writeToBuffer(`${ext}[${qualityOpts}]`)
+    const data: Uint8Array = image.writeToBuffer(`${ext}[${opts.join(',')}]`)
     const copy = new Uint8Array(data)
     const metaAfter = await extractMetadata(copy.buffer)
     return {
