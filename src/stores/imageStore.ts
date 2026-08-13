@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { ImageFormat } from '@/core/formats'
 import { detectFormat, FORMATS } from '@/core/formats'
-import type { MetaField } from '@/core/strip'
+import { extractMetadata, STRIP_UNSUPPORTED, type MetaField } from '@/core/strip'
 
 export interface ImageItem {
   id: string
@@ -79,6 +79,20 @@ export const useImageStore = defineStore('images', () => {
       }
     })
     images.value.push(...items)
+
+    // Non-blocking metadata scan for strip UI (and cheap enough always-on)
+    for (const item of items) {
+      if (!item.format || STRIP_UNSUPPORTED.has(item.format)) continue
+      void item.file.arrayBuffer()
+        .then(buf => extractMetadata(buf))
+        .then(fields => {
+          const current = images.value.find(i => i.id === item.id)
+          if (current && !current.metaBefore) current.metaBefore = fields
+        })
+        .catch(() => {
+          /* leave metaBefore undefined → UI shows unread */
+        })
+    }
   }
 
   function removeImage(id: string) {

@@ -1,5 +1,8 @@
 import { useImageStore, type ImageItem } from '@/stores/imageStore'
 import { processImage } from '@/core/pipeline'
+import { extractMetadata, stripMetadata, STRIP_UNSUPPORTED } from '@/core/strip'
+import { FORMATS } from '@/core/formats'
+import i18n from '@/i18n'
 
 export interface ProcessAllSummary {
   total: number
@@ -15,6 +18,27 @@ export function useImageProcessor() {
     item.status = 'processing'
     try {
       const buffer = await item.file.arrayBuffer()
+
+      if (store.activeMode === 'strip') {
+        const format = item.format
+        if (!format || STRIP_UNSUPPORTED.has(format) || !FORMATS[format].writable) {
+          throw new Error(i18n.global.t('strip.unsupported'))
+        }
+        if (!item.metaBefore) {
+          try { item.metaBefore = await extractMetadata(buffer) } catch { /* ignore */ }
+        }
+        const outFormat = FORMATS[format].writable ? format : 'png'
+        const result = await stripMetadata(buffer, {
+          removeIcc: store.stripConfig.removeIcc,
+          format: outFormat,
+        })
+        const blob = new Blob([result.data as BlobPart], { type: `image/${result.format}` })
+        const url = URL.createObjectURL(blob)
+        store.setResult(item.id, url, blob.size)
+        store.setMetaAfter(item.id, result.metaAfter)
+        return
+      }
+
       // In convert mode, use max quality — don't apply compression
       const config = store.activeMode === 'convert'
         ? { ...item.config, quality: 100, lossless: false }
