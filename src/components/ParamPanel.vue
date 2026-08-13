@@ -152,6 +152,20 @@ function setMaxWidth(val: number) {
       </div>
     </template>
 
+    <!-- Strip mode -->
+    <template v-if="store.activeMode === 'strip'">
+      <p class="hint">{{ t('strip.desc') }}</p>
+      <label class="check-row">
+        <input
+          type="checkbox"
+          :checked="store.stripConfig.removeIcc"
+          @change="store.setStripConfig({ removeIcc: ($event.target as HTMLInputElement).checked })"
+        />
+        <span>{{ t('strip.removeIcc') }}</span>
+      </label>
+      <p class="hint muted">{{ t('strip.removeIccHint') }}</p>
+    </template>
+
     <div class="param-group">
       <div class="max-width-row">
         <input
@@ -313,6 +327,30 @@ function setMaxWidth(val: number) {
 .width-unit {
   font-size: var(--font-caption);
   color: var(--text-muted);
+}
+.hint {
+  margin: 0 0 var(--space-3);
+  font-size: var(--font-caption);
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+.hint.muted {
+  margin-top: var(--space-1);
+  margin-bottom: var(--space-3);
+  font-size: 11px;
+}
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-bottom: var(--space-1);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.check-row input {
+  accent-color: var(--primary);
 }
 
 @media (max-width: 768px) {
