@@ -148,15 +148,18 @@ function formatLine(item: ImageItem): string {
 
 function resultText(item: ImageItem): string | null {
   if (!item.resultSize) return null
-  // Strip mode: show absolute size (neutral); never "uncompressed"
-  if (store.activeMode === 'strip') {
-    return `→ ${formatSize(item.resultSize)}`
-  }
   if (item.resultSize < item.size) {
     const pct = ((1 - item.resultSize / item.size) * 100).toFixed(0)
     return `→ ${formatSize(item.resultSize)} (-${pct}%)`
   }
   return null
+}
+
+/** Primary strip-mode result: cleanup summary, not size. */
+function stripResultLabel(item: ImageItem): string | null {
+  if (item.status !== 'done' || !item.metaAfter) return null
+  const n = clearedCount(item)
+  return n > 0 ? t('strip.resultCleared', { n }) : t('strip.resultClean')
 }
 </script>
 
@@ -215,7 +218,7 @@ function resultText(item: ImageItem): string | null {
               <th>{{ t('batch.colFilename') }}</th>
               <th>{{ t('batch.colOriginalSize') }}</th>
               <th>{{ t('batch.colFormat') }}</th>
-              <th>{{ t('batch.colResult') }}</th>
+              <th>{{ store.activeMode === 'strip' ? t('strip.colResult') : t('batch.colResult') }}</th>
               <th>{{ t('batch.colStatus') }}</th>
               <th>{{ t('batch.colAction') }}</th>
             </tr>
@@ -230,7 +233,17 @@ function resultText(item: ImageItem): string | null {
                 <td>{{ formatSize(item.size) }}</td>
                 <td>{{ formatLine(item) }}</td>
                 <td>
-                  <template v-if="item.resultSize">
+                  <div v-if="store.activeMode === 'strip'" class="strip-result">
+                    <template v-if="stripResultLabel(item)">
+                      <span
+                        class="strip-result-main"
+                        :class="clearedCount(item) > 0 ? 'is-cleared' : 'is-clean'"
+                      >{{ stripResultLabel(item) }}</span>
+                      <span v-if="item.resultSize" class="strip-result-size">{{ formatSize(item.resultSize) }}</span>
+                    </template>
+                    <span v-else class="strip-result-placeholder">-</span>
+                  </div>
+                  <template v-else-if="item.resultSize">
                     <span v-if="resultText(item)" class="rate">{{ resultText(item) }}</span>
                     <span v-else class="rate-negative">{{ t('batch.uncompressed') }}</span>
                   </template>
@@ -335,7 +348,18 @@ function resultText(item: ImageItem): string | null {
                 <span>{{ formatSize(item.size) }}</span>
                 <span class="dot">·</span>
                 <span>{{ formatLine(item) }}</span>
-                <template v-if="item.resultSize">
+                <template v-if="store.activeMode === 'strip' && stripResultLabel(item)">
+                  <span class="dot">·</span>
+                  <span
+                    class="strip-result-main"
+                    :class="clearedCount(item) > 0 ? 'is-cleared' : 'is-clean'"
+                  >{{ stripResultLabel(item) }}</span>
+                  <template v-if="item.resultSize">
+                    <span class="dot">·</span>
+                    <span class="strip-result-size">{{ formatSize(item.resultSize) }}</span>
+                  </template>
+                </template>
+                <template v-else-if="item.resultSize">
                   <span class="dot">·</span>
                   <span v-if="resultText(item)" class="rate">{{ resultText(item) }}</span>
                   <span v-else class="rate-negative">{{ t('batch.uncompressed') }}</span>
@@ -613,6 +637,29 @@ function resultText(item: ImageItem): string | null {
 .rate-negative {
   color: var(--warning);
   font-weight: 500;
+}
+.strip-result {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.strip-result-main {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.strip-result-main.is-cleared {
+  color: var(--success);
+}
+.strip-result-main.is-clean {
+  color: var(--text-secondary);
+}
+.strip-result-size,
+.strip-result-placeholder {
+  font-size: var(--font-caption);
+  color: var(--text-muted);
+  font-weight: 400;
 }
 
 .action-cell {
